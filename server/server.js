@@ -5,11 +5,12 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose'); // Import Mongoose
+const mongoose = require('mongoose'); 
 
 // Import route handlers
-const authRoutes = require('./routes/auth.routes.js'); // Require the router object
-// const otherRoutes = require('./routes/other.routes.js'); // Example for future routes
+const authRoutes = require('./routes/auth.routes.js'); 
+const semesterRoutes = require('./routes/semester.routes.js'); // *** ADDED THIS LINE ***
+// const otherRoutes = require('./routes/other.routes.js'); 
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -25,7 +26,6 @@ if (!mongoUri) {
   process.exit(1); 
 }
 
-// Function to connect to MongoDB using Mongoose
 async function connectDB_Mongoose() {
   try {
     await mongoose.connect(mongoUri, {
@@ -53,9 +53,12 @@ app.get('/api/status', (req, res) => {
 // --- Mount Routers ---
 // Function to setup routes 
 function setupRoutes() {
-
+  // Mount the authentication routes under '/api/auth'
   app.use('/api/auth', authRoutes); 
 
+  // Mount the semester routes under '/api/semesters'
+  app.use('/api/semesters', semesterRoutes); // *** ADDED THIS LINE ***
+  
   // Mount other routers here later
   // app.use('/api/posts', otherRoutes); 
   
@@ -72,6 +75,7 @@ connectDB_Mongoose().then(() => {
     console.log(`Server is running on http://localhost:${PORT}`);
     console.log(`API status endpoint: GET /api/status`);
     console.log(`API auth endpoints mounted under: /api/auth`); 
+    console.log(`API semester endpoints mounted under: /api/semesters`); // *** ADDED THIS LINE ***
   });
 
 }).catch(error => {
