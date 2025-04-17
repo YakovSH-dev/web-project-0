@@ -9,8 +9,8 @@ const mongoose = require('mongoose');
 
 // Import route handlers
 const authRoutes = require('./routes/auth.routes.js'); 
-const semesterRoutes = require('./routes/semester.routes.js'); // *** ADDED THIS LINE ***
-// const otherRoutes = require('./routes/other.routes.js'); 
+const semesterRoutes = require('./routes/semester.routes.js'); 
+const courseRoutes = require('./routes/course.routes.js'); // *** ADDED THIS LINE ***
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -57,10 +57,10 @@ function setupRoutes() {
   app.use('/api/auth', authRoutes); 
 
   // Mount the semester routes under '/api/semesters'
-  app.use('/api/semesters', semesterRoutes); // *** ADDED THIS LINE ***
+  app.use('/api/semesters', semesterRoutes); 
   
-  // Mount other routers here later
-  // app.use('/api/posts', otherRoutes); 
+  // Mount the course routes under '/api/courses'
+  app.use('/api/courses', courseRoutes); // *** ADDED THIS LINE ***
   
   console.log("Routes initialized.");
 }
@@ -75,7 +75,8 @@ connectDB_Mongoose().then(() => {
     console.log(`Server is running on http://localhost:${PORT}`);
     console.log(`API status endpoint: GET /api/status`);
     console.log(`API auth endpoints mounted under: /api/auth`); 
-    console.log(`API semester endpoints mounted under: /api/semesters`); // *** ADDED THIS LINE ***
+    console.log(`API semester endpoints mounted under: /api/semesters`); 
+    console.log(`API course endpoints mounted under: /api/courses`); // *** ADDED THIS LINE ***
   });
 
 }).catch(error => {
