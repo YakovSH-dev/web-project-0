@@ -10,7 +10,9 @@ function App() {
     setIsActive(!isActive);
     setIsLoading(true);
     setApiMessage('Loading...');
+
     const apiUrl = 'https://diakstra.onrender.com/api/status';
+    const clicksApiUrl = 'https://diakstra.onrender.com/api/clicks';
 
     fetch(apiUrl)
       .then(response => {
@@ -25,7 +27,32 @@ function App() {
       .then(data => {
         // The 'data' variable now holds the parsed JSON object (e.g., { status: 'ok', message: '...' })
         // Update the apiMessage state with the message from the backend
-        setApiMessage(data.message || 'No message field in response'); 
+        setApiMessage(data.message || 'No message field in response');
+
+        console.log('Status fetched successfully, now recording click...');
+        return fetch(clicksApiUrl, {
+          method: 'POST',
+          // Headers are important for POST, especially Content-Type
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          // Sending an empty body as this endpoint doesn't require specific data
+          body: JSON.stringify({}) 
+        });      
+      })
+      .then(response => {
+        // Check response of the POST request
+        if (!response.ok) {
+          // Handle potential errors from the POST request
+          throw new Error(`POST request failed! status: ${response.status}`);
+        }
+        return response.json(); // Parse the JSON response from POST
+      })
+      .then(data => {
+        // Log success message from the POST response
+        console.log('Click recorded:', data.message); 
+        // Optionally update UI further, maybe append "(click recorded)" to apiMessage?
+        // setApiMessage(prevMessage => prevMessage + " (click recorded)"); 
       })
       .catch(error => {
         // Handle any errors that occurred during the fetch operation
