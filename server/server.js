@@ -8,19 +8,22 @@ const { MongoClient } = require('mongodb');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// --- Middleware ---
+
+app.use(cors());
+app.use(express.json());
+
+
 // --- MongoDB Connection Setup ---
 
 const mongoUri = process.env.MONGODB_URI;
-
 if (!mongoUri) {
   console.error('Error: MONGODB_URI is not defined in the environment variables.');
   process.exit(1); 
 }
-
 const client = new MongoClient(mongoUri);
-
-let db; 
-
+const dbName = "buttonAppDb"; 
+const collectionName = "clicks"; 
 async function connectDB() {
     try {
       await client.connect();
@@ -35,21 +38,47 @@ async function connectDB() {
     }
   }
 
-
-// --- Middleware ---
-
-app.use(cors());
-
-
 // --- Routes ---
 
-app.get('/api/status', (req, res) => {
+app.get('/api/status', (req, res) => { // for getting server status
+
   res.json({ 
     status: 'ok', 
     message: 'Server is running smoothly',
     // dbConnected: client.topology?.isConnected() // More advanced check
   }); 
 });
+
+app.post('/api/clicks', async (req, res) => { // POST route to record a click event
+    // This route doesn't expect specific data in the request body for now,
+    // but express.json() middleware allows it for future expansion.
+    console.log(`Received request for POST /api/clicks at ${new Date().toISOString()}`); 
+    
+    try {
+      // Select the database and collection
+      const database = client.db(dbName); 
+      const collection = database.collection(collectionName);
+  
+      // Create a document to insert (just a timestamp for now)
+      const clickDocument = {
+        timestamp: new Date(),
+        // Example: you could potentially add data from req.body if needed
+        // requestData: req.body 
+      };
+  
+      // Insert the document into the collection
+      const result = await collection.insertOne(clickDocument);
+      console.log(`Inserted click document with _id: ${result.insertedId}`);
+  
+      // Send a success response (201 Created)
+      res.status(201).json({ message: 'Click recorded successfully', insertedId: result.insertedId }); 
+  
+    } catch (error) {
+      console.error('Failed to insert click document:', error);
+      // Send an error response (500 Internal Server Error)
+      res.status(500).json({ message: 'Failed to record click', error: error.message });
+    }
+  });
 
 
 // --- Start Server after Connecting to DB ---
