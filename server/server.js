@@ -91,14 +91,14 @@ app.post('/api/userSubmit', async (req, res) => { // POST route to record a user
     const database = client.db(dbName); 
     const collection = database.collection(usersCollectionName);
 
-    const clickDocument = {
-      name: res.name,
-      age: res.age,
+    const userDataDocument = {
+      name: res.body.name,
+      age: res.body.age,
       timestamp: new Date(), 
     };
 
     // Insert the document into the collection
-    const result = await collection.insertOne(clickDocument);
+    const result = await collection.insertOne(userDataDocument);
     console.log(`Inserted click document with _id: ${result.insertedId}`);
 
     // Send a success response (201 Created)

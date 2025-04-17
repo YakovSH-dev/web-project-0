@@ -73,13 +73,20 @@ function App() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   }
 
-  const handleFormSubmit = () => {
+  const handleFormSubmit = (event) => {
+    event.preventDefault();
     setIsUserDataLoading(true)
-    setUserData({Name:'Loading...', Age: 'Loading...'})
 
     const userDataSubmitUrl = 'https://diakstra.onrender.com/api/userSubmit'
 
-    fetch(userDataSubmitUrl)
+    fetch(userDataSubmitUrl, {
+      method: 'POST', // Specify POST method
+      headers: {
+        'Content-Type': 'application/json', // Specify content type
+      },
+      // Send the form data (name and age) in the request body
+      body: JSON.stringify(formData) 
+    })
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -87,7 +94,7 @@ function App() {
         return response.json(); 
       })
       .then (() => {
-        setUserData({ ...formData, [e.target.name]: e.target.value });
+        setUserData({ ...formData, [event.target.name]: event.target.value });
       })
       .finally(() => {
         setIsUserDataLoading(false);
@@ -134,6 +141,12 @@ function App() {
         />
         <button type="submit">Submit</button>
       </form>
+      <p> 
+        {
+        isUserDataLoading ? 'Loading' :
+        `Name: ${userData.name || 'Enter your name'}, Age: ${userData.age || 'Enter your age'}`
+        }
+        </p>
     </div>
   )
 }
