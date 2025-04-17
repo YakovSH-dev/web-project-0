@@ -9,11 +9,14 @@ const router = express.Router();
 
 // --- Define Authentication Routes ---
 
-// POST /signup - Route definition now points to the controller function
-// The actual logic is handled in authController.signup
+// POST /signup - Route definition points to the signup controller function
 router.post('/signup', authController.signup);
 
-// --- Add other auth routes here later and point them to controller functions ---
-// Example: router.post('/login', authController.login);
+// POST /login - Route definition points to the login controller function
+router.post('/login', authController.login); 
 
+// --- Add other auth routes here later ---
+// Example: router.post('/logout', authController.logout);
+
+// Export the configured router directly
 module.exports = router; 
