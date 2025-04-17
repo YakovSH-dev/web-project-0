@@ -23,7 +23,9 @@ if (!mongoUri) {
 }
 const client = new MongoClient(mongoUri);
 const dbName = "buttonAppDb"; 
-const collectionName = "clicks"; 
+const clicksCollectionName = "clicks"; 
+const usersCollectionName = "users"; 
+
 async function connectDB() {
     try {
       await client.connect();
@@ -57,7 +59,7 @@ app.post('/api/clicks', async (req, res) => { // POST route to record a click ev
     try {
       // Select the database and collection
       const database = client.db(dbName); 
-      const collection = database.collection(collectionName);
+      const collection = database.collection(clicksCollectionName);
   
       // Create a document to insert (just a timestamp for now)
       const clickDocument = {
@@ -79,6 +81,35 @@ app.post('/api/clicks', async (req, res) => { // POST route to record a click ev
       res.status(500).json({ message: 'Failed to record click', error: error.message });
     }
   });
+
+app.post('/api/userSubmit', async (req, res) => { // POST route to record a user submition event
+
+  console.log(`Received request for POST /api/UserSubmit at ${new Date().toISOString()}`); 
+  
+  try {
+
+    const database = client.db(dbName); 
+    const collection = database.collection(usersCollectionName);
+
+    const clickDocument = {
+      name: res.name,
+      age: res.age,
+      timestamp: new Date(), 
+    };
+
+    // Insert the document into the collection
+    const result = await collection.insertOne(clickDocument);
+    console.log(`Inserted click document with _id: ${result.insertedId}`);
+
+    // Send a success response (201 Created)
+    res.status(201).json({ message: 'Click recorded successfully', insertedId: result.insertedId }); 
+
+  } catch (error) {
+    console.error('Failed to insert click document:', error);
+    // Send an error response (500 Internal Server Error)
+    res.status(500).json({ message: 'Failed to record click', error: error.message });
+  }
+});
 
 
 // --- Start Server after Connecting to DB ---

@@ -2,19 +2,22 @@ import { useState } from 'react';
 
 function App() {
 
-  const [isActive, setIsActive] = useState(false);
-  const [apiMessage, setApiMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [apiStatusMessage, setApiStatusMessage] = useState('');
+  const [isStatusLoading, setIsStatusLoading] = useState(false);
+
+  const [userData, setUserData] = useState({});
+  const [isUserDataLoading, setIsUserDataLoading] = useState(false);
+
+  const [formData, setFormData] = useState({name: '', age: ''});
 
   const handleButtonClick = () => {
-    setIsActive(!isActive);
-    setIsLoading(true);
-    setApiMessage('Loading...');
+    setIsStatusLoading(true);
+    setApiStatusMessage('Loading...');
 
-    const apiUrl = 'https://diakstra.onrender.com/api/status';
+    const apiStatusUrl = 'https://diakstra.onrender.com/api/status';
     const clicksApiUrl = 'https://diakstra.onrender.com/api/clicks';
 
-    fetch(apiUrl)
+    fetch(apiStatusUrl)
       .then(response => {
         // Check if the response status code is OK (e.g., 200)
         if (!response.ok) {
@@ -27,7 +30,7 @@ function App() {
       .then(data => {
         // The 'data' variable now holds the parsed JSON object (e.g., { status: 'ok', message: '...' })
         // Update the apiMessage state with the message from the backend
-        setApiMessage(data.message || 'No message field in response');
+        setApiStatusMessage(data.message || 'No message field in response');
 
         console.log('Status fetched successfully, now recording click...');
         return fetch(clicksApiUrl, {
@@ -57,12 +60,37 @@ function App() {
       .catch(error => {
         // Handle any errors that occurred during the fetch operation
         console.error('Error fetching API status:', error);
-        setApiMessage(`Error: ${error.message}`);
+        setApiStatusMessage(`Error: ${error.message}`);
       })
       .finally(() => {
         // This block runs regardless of success or error
         // Set loading state back to false
-        setIsLoading(false);
+        setIsStatusLoading(false);
+      });
+  };
+
+  const handleFormChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  }
+
+  const handleFormSubmit = () => {
+    setIsUserDataLoading(true)
+    setUserData({Name:'Loading...', Age: 'Loading...'})
+
+    const userDataSubmitUrl = 'https://diakstra.onrender.com/api/userSubmit'
+
+    fetch(userDataSubmitUrl)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json(); 
+      })
+      .then (() => {
+        setUserData({ ...formData, [e.target.name]: e.target.value });
+      })
+      .finally(() => {
+        setIsUserDataLoading(false);
       });
   };
 
@@ -77,20 +105,35 @@ function App() {
   
   return (
     <div style={containerStyles}>
-      <button // Main button 
+      <button // Status button 
         style={{
-          backgroundColor: isActive ? 'gray' : 'lightgray',
+          backgroundColor:'lightgray',
           padding: '10px 20px',
           borderRadius: '5px',
           border: 'none',
-          cursor: isLoading ? 'wait' : 'pointer',
+          cursor: isStatusLoading ? 'wait' : 'pointer',
         }}
         onClick={handleButtonClick}
-        disabled={isLoading}
+        disabled={isStatusLoading}
       >
-          {isLoading ? 'Loading...' : 'Click Me'}
+          {isStatusLoading ? 'Loading...' : 'Click Me'}
       </button>
-      <p>API Status: {apiMessage || 'Click button to fetch status...'}</p>
+      <p>API Status: {apiStatusMessage || 'Click button to fetch status...'}</p>
+      <form onSubmit={handleFormSubmit} > 
+        <input
+          name="name"
+          value={formData.name}
+          onChange={handleFormChange}
+          placeholder="Name"
+        />
+        <input
+          name="age"
+          value={formData.email}
+          onChange={handleFormChange}
+          placeholder="age"
+        />
+        <button type="submit">Submit</button>
+      </form>
     </div>
   )
 }
