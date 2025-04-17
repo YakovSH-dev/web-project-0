@@ -38,12 +38,25 @@ function App() {
         setIsLoading(false);
       });
   };
+
+  const containerStyles = {
+    display: 'flex',          
+    flexDirection: 'column',  
+    alignItems: 'center',     
+    justifyContent: 'center', 
+    minHeight: '100vh',      
+    padding: '20px'         
+  };
   
   return (
-    <div>
-      <button
+    <div style={containerStyles}>
+      <button // Main button 
         style={{
-          backgroundColor: isActive ? 'gray' : 'lightgray' 
+          backgroundColor: isActive ? 'gray' : 'lightgray',
+          padding: '10px 20px',
+          borderRadius: '5px',
+          border: 'none',
+          cursor: isLoading ? 'wait' : 'pointer',
         }}
         onClick={handleButtonClick}
         disabled={isLoading}
