@@ -1,111 +1,153 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
+import { useSemester } from '../../context/SemesterContext';
+import AddCourseModal from '../course/AddCourseModal';
 
 // Placeholder for a real Logo component or img tag
 const Logo = () => <span className="font-bold text-lg">Logo</span>;
 
 function MainLayout() {
   const { t, i18n } = useTranslation();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const { 
+    activeSemester, 
+    activeSemesterCourses, 
+    isLoadingSemesters, 
+    isLoadingCourses,
+    refreshActiveSemesterCourses
+  } = useSemester();
 
-  // --- Placeholder Data & Handlers --- 
-  // TODO: Replace with actual data fetching for semester/courses
-  const userName = "User Name";
-  const semesterName = "Fall 2024";
-  const courses = [
-      { id: '1', name: 'Course A', color: 'bg-red-500' },
-      { id: '2', name: 'Course B', color: 'bg-blue-500' },
-      { id: '3', name: 'Course C', color: 'bg-green-500' },
-  ];
+  // State for modal visibility
+  const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
+
+  // Use user name from context, provide fallback
+  const userName = user?.name || t('user');
+  
+  // Determine semester name based on context state
+  const semesterNameDisplay = isLoadingSemesters 
+    ? t('loading') // Add 'loading' key to translation files
+    : activeSemester?.name || t('noActiveSemester'); // Add 'noActiveSemester' key
+
+  // Use courses from context
+  const courses = activeSemesterCourses || [];
 
   const handleLanguageChange = (lng) => {
     i18n.changeLanguage(lng);
   };
 
   const handleSemesterClick = () => {
+    // TODO: Implement semester selection/management modal
     console.log('Semester clicked');
   };
 
   const handleCourseClick = (courseId) => {
+    // TODO: Implement course info/edit modal/view
     console.log('Course clicked:', courseId);
   };
 
   const handleAddCourseClick = () => {
-      console.log('Add Course clicked');
+      console.log('Add Course button clicked');
+      setIsAddCourseModalOpen(true); 
   };
-  // --- End Placeholders ---
+
+  const handleCloseAddCourseModal = () => {
+      setIsAddCourseModalOpen(false);
+  };
+
+  const handleCourseAdded = (newCourse) => {
+      console.log('New course added in MainLayout:', newCourse);
+      refreshActiveSemesterCourses();
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
+      
       <header className="bg-white shadow-md sticky top-0 z-10 w-full">
-        <nav className="container mx-auto px-4 py-3 flex flex-wrap items-center justify-between">
-          {/* Left Side: Logo & Semester */}
-          <div className="flex items-center space-x-4 rtl:space-x-reverse mb-2 md:mb-0">
-            <Logo />
-            <button 
-              onClick={handleSemesterClick}
-              className="text-gray-700 hover:text-blue-600 font-semibold"
-             >
-                {semesterName} 
-            </button>
-          </div>
-
-          {/* Center: Course Circles & Add Button */}
-          <div className="flex items-center space-x-2 rtl:space-x-reverse flex-grow justify-center mb-2 md:mb-0 mx-4">
-             {courses.map((course) => (
-                <button
-                    key={course.id}
-                    onClick={() => handleCourseClick(course.id)}
-                    title={course.name}
-                    className={`w-8 h-8 rounded-full ${course.color} text-white flex items-center justify-center text-xs font-bold hover:opacity-80 transition-opacity shadow-sm`}
-                >
-                    {course.name.substring(0, 1).toUpperCase()}
-                </button>
-             ))}
+         <nav className="container mx-auto px-4 py-3 flex flex-wrap items-center justify-between">
+           {/* Left Side: Logo & Semester */}
+           <div className="flex items-center space-x-4 rtl:space-x-reverse mb-2 md:mb-0">
+             <Logo />
              <button 
-                onClick={handleAddCourseClick}
-                title="Add Course"
-                className="w-8 h-8 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center text-lg font-bold hover:bg-gray-400 transition-colors shadow-sm"
+               onClick={handleSemesterClick}
+               className="text-gray-700 hover:text-blue-600 font-semibold"
+               disabled={isLoadingSemesters} // Disable while loading
+              >
+                 {semesterNameDisplay} {/* Use dynamic semester name */} 
+             </button>
+           </div>
+ 
+           {/* Center: Course Circles & Add Button */}
+           <div className="flex items-center space-x-2 rtl:space-x-reverse flex-grow justify-center mb-2 md:mb-0 mx-4">
+              {/* Show loading indicator for courses? */}
+              {isLoadingCourses && <span className="text-xs text-gray-500">{t('loadingCourses')}</span>} 
+              {!isLoadingCourses && courses.map((course) => (
+                 <button
+                     key={course._id} // Use _id from MongoDB
+                     onClick={() => handleCourseClick(course._id)}
+                     title={course.name}
+                     // Remove dynamic background class, apply via inline style
+                     className={`w-8 h-8 rounded-full text-white flex items-center justify-center text-xs font-bold hover:opacity-80 transition-opacity shadow-sm`}
+                     // Apply background color using inline style
+                     style={{ backgroundColor: course.color || '#808080' }} // Use course color or fallback gray
+                 >
+                     {/* Use name from course data */}
+                     {course.name?.substring(0, 1).toUpperCase() || '?'}
+                 </button>
+              ))}
+              {/* Conditionally render add button? Maybe only if active semester exists? */}
+              {!isLoadingCourses && activeSemester && (
+                  <button 
+                     onClick={handleAddCourseClick}
+                     title={t('addCourseTitle')} // Add 'addCourseTitle' key
+                     className="w-8 h-8 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center text-lg font-bold hover:bg-gray-400 transition-colors shadow-sm"
+                  >
+                     +
+                 </button>
+              )}
+           </div>
+ 
+           {/* Right Side: User, Language & Logout */}
+           <div className="flex items-center space-x-3 rtl:space-x-reverse">
+              <span className="text-sm text-gray-600 hidden sm:inline">{t('helloUser', { name: userName })}</span> {/* Use i18n for greeting */}
+              {/* Language Switcher */}
+              <button 
+                 onClick={() => handleLanguageChange('en')} 
+                 disabled={i18n.language === 'en'}
+                 className={`px-2 py-1 text-xs rounded ${i18n.language === 'en' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
              >
-                +
-            </button>
-          </div>
-
-          {/* Right Side: User, Language & Logout */}
-          <div className="flex items-center space-x-3 rtl:space-x-reverse">
-             <span className="text-sm text-gray-600 hidden sm:inline">Hello, {userName}</span> 
-             {/* Language Switcher */}
+                 EN
+             </button>
              <button 
-                onClick={() => handleLanguageChange('en')} 
-                disabled={i18n.language === 'en'}
-                className={`px-2 py-1 text-xs rounded ${i18n.language === 'en' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-            >
-                EN
-            </button>
-            <button 
-                onClick={() => handleLanguageChange('he')} 
-                disabled={i18n.language === 'he'}
-                className={`px-2 py-1 text-xs rounded ${i18n.language === 'he' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-            >
-                HE
-            </button>
-            <button 
-                onClick={logout}
-                className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
-            >
-                {t('logoutButton')}
-            </button>
-          </div>
-        </nav>
-      </header>
+                 onClick={() => handleLanguageChange('he')} 
+                 disabled={i18n.language === 'he'}
+                 className={`px-2 py-1 text-xs rounded ${i18n.language === 'he' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+             >
+                 HE
+             </button>
+             {/* Logout uses useAuth hook directly */}
+             <button 
+                 onClick={useAuth().logout} // Call logout from useAuth directly
+                 className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+             >
+                 {t('logoutButton')}
+             </button>
+           </div>
+         </nav>
+       </header>
 
       {/* Main Content Area */}
       <main className="flex-grow container mx-auto p-4">
         <Outlet /> 
       </main>
 
+      {/* Render the modal */} 
+      <AddCourseModal 
+        isOpen={isAddCourseModalOpen}
+        onClose={handleCloseAddCourseModal}
+        onCourseAdded={handleCourseAdded} 
+      />
     </div>
   );
 }

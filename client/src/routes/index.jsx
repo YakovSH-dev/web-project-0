@@ -4,6 +4,7 @@ import {
   Outlet // Import Outlet for the root layout
 } from "react-router-dom";
 import { AuthProvider } from '../context/AuthContext'; // Import AuthProvider
+import { SemesterProvider } from '../context/SemesterContext'; // Import SemesterProvider
 
 // Import Page Components
 import DashboardPage from '../pages/DashboardPage.jsx';
@@ -19,7 +20,9 @@ import ProtectedRoute from './ProtectedRoute.jsx';
 const RootLayout = () => {
   return (
     <AuthProvider>
-      <Outlet /> {/* Child routes will render here, inheriting AuthContext */} 
+      <SemesterProvider>
+        <Outlet /> {/* Child routes will render here, inheriting AuthContext */} 
+      </SemesterProvider>
     </AuthProvider>
   );
 };
@@ -59,7 +62,5 @@ const router = createBrowserRouter([
   }
 ]);
 
-// Remove the AppRouter component, just export the router instance
-// const AppRouter = () => { ... };
 
 export default router; // Export the router instance directly 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import MainViewPanel from '../components/dashboard/MainViewPanel';
 
 function DashboardPage() {
   const { t } = useTranslation();
@@ -13,7 +14,9 @@ function DashboardPage() {
           <div className="bg-white p-4 shadow rounded order-2 md:order-2">{t('upcomingAssignments')}</div>
           {/* Bottom Row */}
           <div className="bg-white p-4 shadow rounded order-3 md:order-3">{t('gaps')}</div>
-          <div className="bg-white p-4 shadow rounded order-4 md:order-4">{t('mainView')}</div>
+          <div className="order-4 md:order-4">
+              <MainViewPanel />
+          </div>
       </div>
     </div>
   );

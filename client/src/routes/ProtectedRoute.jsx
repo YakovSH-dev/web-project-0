@@ -1,9 +1,10 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext'; // Import the useAuth hook
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-const ProtectedRoute = () => {
-  const { isAuthenticated, isLoading } = useAuth(); // Use context
+// Accept children as a prop
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, isLoading } = useAuth();
 
   // Show loading state while checking auth status
   if (isLoading) {
@@ -17,9 +18,9 @@ const ProtectedRoute = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // Render the child route component if authenticated
-  console.log('ProtectedRoute: Authenticated, rendering Outlet');
-  return <Outlet />; 
+  // Render the children that were passed in (e.g., <MainLayout />)
+  console.log('ProtectedRoute: Authenticated, rendering children');
+  return children; 
 };
 
 export default ProtectedRoute; 

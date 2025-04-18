@@ -35,5 +35,21 @@ export const registerUser = async (userData) => {
   }
 };
 
+/**
+ * Fetches the current user's profile information using the stored token.
+ * @returns {Promise<object>} The user profile data.
+ */
+export const getUserProfile = async () => {
+  try {
+    // Assumes backend has a route like GET /api/auth/me protected by auth middleware
+    const response = await apiClient.get('/auth/me'); 
+    return response.data; // Should contain user info (e.g., id, name, email)
+  } catch (error) {
+    console.error("Get Profile API error:", error.response ? error.response.data : error.message);
+    // Don't throw a generic error, let the caller handle the implications (e.g., invalid token)
+    throw error.response ? error.response.data : error;
+  }
+};
+
 // Optional: Add a function to fetch user profile if needed later
 // export const getUserProfile = async () => { ... } 

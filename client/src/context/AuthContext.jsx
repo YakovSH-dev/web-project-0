@@ -1,7 +1,7 @@
 // src/context/AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginUser, registerUser } from '../services/auth'; // Assuming getUserProfile might be added here later
+import { loginUser, registerUser, getUserProfile } from '../services/auth'; // Assuming getUserProfile might be added here later
 import apiClient from '../services/apiClient'; // Needed to potentially clear interceptors on logout
 
 const AuthContext = createContext(null);
@@ -9,31 +9,62 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => localStorage.getItem('authToken') || null);
   const [user, setUser] = useState(null); // Store basic user info if needed
-  const [isAuthenticated, setIsAuthenticated] = useState(!!token);
+  const [isAuthenticated, setIsAuthenticated] = useState(false); // Start as false until verified
   const [isLoading, setIsLoading] = useState(true); // Start loading until initial check is done
   const navigate = useNavigate();
 
+  // --- Logout Function (defined earlier for use in effect) ---
+  const logout = useCallback((shouldNavigate = true) => {
+    console.log('Logging out via AuthContext');
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('authToken');
+    // Optional: Remove user info from local storage if you stored it
+    // localStorage.removeItem('userInfo');
+    if (shouldNavigate) {
+        navigate('/login', { replace: true });
+    }
+  }, [navigate]);
+
   // --- Effect for Initial Load --- 
   useEffect(() => {
+    let isMounted = true; // Flag to prevent state updates on unmounted component
     const initializeAuth = async () => {
-      if (token) {
-        setIsAuthenticated(true);
-        // Optional: Fetch user profile here using the token to confirm validity
-        // try {
-        //   const profile = await getUserProfile(); // You'd need to create this service function
-        //   setUser(profile);
-        // } catch (error) {
-        //   console.error("Failed to fetch user profile on init:", error);
-        //   // Token might be invalid, log out
-        //   handleLogout(false); // Pass false to avoid navigation if already checking
-        // }
-      } else {
-        setIsAuthenticated(false);
+      setIsLoading(true); // Set loading true at the start
+      const storedToken = localStorage.getItem('authToken');
+      try {
+        if (storedToken) {
+          console.log('AuthContext: Found token, verifying...');
+          // Set token immediately for apiClient interceptor to use it
+          setToken(storedToken); 
+          const profile = await getUserProfile(); 
+          if (isMounted) { // Check if component is still mounted
+             setUser(profile); 
+             setIsAuthenticated(true);
+             console.log('AuthContext: Token verified, user loaded.', profile);
+          }
+        } else {
+          if (isMounted) setIsAuthenticated(false);
+        }
+      } catch (error) {
+        console.error("AuthContext: Failed to verify token or fetch profile:", error);
+        if (isMounted) {
+            logout(false); // Token is invalid or API error, log out without navigating
+        }
+      } finally {
+          // Always set loading to false after attempt, even on error
+          if (isMounted) setIsLoading(false);
       }
-      setIsLoading(false);
     };
+    
     initializeAuth();
-  }, [token]); // Re-run if token changes externally (less likely)
+
+    return () => {
+        isMounted = false; // Cleanup function to set the flag on unmount
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Dependency array includes logout which includes navigate
 
   // --- Login Function --- 
   const login = useCallback(async (credentials) => {
@@ -41,22 +72,21 @@ export const AuthProvider = ({ children }) => {
       const data = await loginUser(credentials);
       if (data.token) {
         setToken(data.token);
-        setUser(data.user || null); // Assuming backend sends user info
+        setUser(data.user || null); // Store user info from login response
         localStorage.setItem('authToken', data.token);
+        // Optional: Store user info in localStorage
+        // if (data.user) localStorage.setItem('userInfo', JSON.stringify(data.user));
         setIsAuthenticated(true);
-        navigate('/', { replace: true }); // Go to dashboard
+        navigate('/', { replace: true }); 
       } else {
         throw new Error('Login failed: No token received.');
       }
     } catch (error) {
       console.error('AuthContext login error:', error);
-      setIsAuthenticated(false);
-      setToken(null);
-      setUser(null);
-      localStorage.removeItem('authToken');
-      throw error; // Re-throw error to be caught in the form
+      logout(false); // Ensure cleanup on failed login, don't navigate
+      throw error; 
     }
-  }, [navigate]);
+  }, [navigate, logout]); // Add logout as dependency
 
   // --- Register Function --- 
   // Currently just calls the API, doesn't log in automatically
@@ -70,20 +100,6 @@ export const AuthProvider = ({ children }) => {
       throw error; // Re-throw error to be caught in the form
     }
   }, []);
-
-  // --- Logout Function ---
-  const logout = useCallback((shouldNavigate = true) => {
-    console.log('Logging out via AuthContext');
-    setToken(null);
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('authToken');
-    // Optional: Clear Axios default headers if necessary (though interceptor handles adding)
-    // delete apiClient.defaults.headers.common['Authorization']; 
-    if (shouldNavigate) {
-        navigate('/login', { replace: true });
-    }
-  }, [navigate]);
 
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({
