@@ -23,8 +23,8 @@ i18n
       escapeValue: false, // Not needed for react as it escapes by default
     },
     backend: {
-      // Path where resources get loaded from
-      loadPath: '/locales/{{lng}}/translation.json', 
+      // Path where resources get loaded from, relative to the base path
+      loadPath: 'locales/{{lng}}/translation.json', // Removed leading slash
     },
     detection: {
       // Order and from where user language should be detected
