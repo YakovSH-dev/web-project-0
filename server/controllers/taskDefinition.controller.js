@@ -9,12 +9,14 @@ const createTaskDefinition = async (req, res) => {
   console.log(`Processing createTaskDefinition request for user: ${req.user?.userId}`);
   let savedTaskDefinition;
   try {
-    const { type, instructor, daysOfWeek, length, startTime, courseId } = req.body;
+    // Destructure schedule instead of daysOfWeek/startTime
+    const { type, instructor, schedule, length, courseId, description } = req.body; // Added description here too
     const userId = req.user.userId;
 
-    // Basic validation for presence of required fields
-    if (!type || !daysOfWeek || !Array.isArray(daysOfWeek) || daysOfWeek.length === 0 || !courseId) {
-      return res.status(400).json({ message: 'Missing or invalid required fields: type, daysOfWeek (non-empty array), courseId' });
+    // Basic validation for presence of required fields including schedule
+    if (!type || !schedule || !Array.isArray(schedule) || schedule.length === 0 || !courseId) {
+      // Improved error message
+      return res.status(400).json({ message: 'Missing or invalid required fields: type, schedule (non-empty array with dayOfWeek and startTime), courseId' });
     }
 
     // Verify the user owns the course
@@ -24,38 +26,35 @@ const createTaskDefinition = async (req, res) => {
       return res.status(404).json({ message: 'Course not found or access denied' });
     }
 
-    // Create new TaskDefinition instance
+    // Create new TaskDefinition instance with schedule
     const newTaskDefinition = new TaskDefinition({
       type,
       instructor,
-      daysOfWeek,
+      schedule, // Use the schedule array
       length,
-      startTime,
-      courseId, // Link to the course
-      userId,     // Link to the user
+      description, // Add description if provided
+      courseId,
+      userId,
     });
 
-    // Save the task definition
+    // Save the task definition (Mongoose validation handles schedule format)
     savedTaskDefinition = await newTaskDefinition.save();
     console.log(`TaskDefinition created successfully with _id: ${savedTaskDefinition._id} for user: ${userId}, course: ${courseId}`);
 
     // ** Generate Instances After Successful Save **
+    // This service will need updating too
     try {
         await generateInstancesForDefinition(savedTaskDefinition._id, userId);
     } catch (generationError) {
         console.error(`Failed to generate instances for new TaskDefinition ${savedTaskDefinition._id}:`, generationError);
-        // Log the error, but don't fail the entire request since the definition was saved.
-        // Maybe return a specific status or message indicating partial success?
-        // For now, just log and send the original success response.
+        // Log error but don't fail request
     }
 
     res.status(201).json(savedTaskDefinition);
 
   } catch (error) {
     console.error('Error creating task definition:', error);
-    // If save failed, no need to attempt generation or cleanup
     if (error.name === 'ValidationError') {
-      // Mongoose validation errors (e.g., enum, array content, time format)
       return res.status(400).json({ message: 'Validation Error', errors: error.errors });
     }
     if (error.name === 'CastError') {
@@ -78,8 +77,10 @@ const getTaskDefinitions = async (req, res) => {
     }
 
     // Find task definitions matching the courseId AND belonging to the logged-in user
-    // Sorting might be useful, e.g., by type then startTime
-    const taskDefinitions = await TaskDefinition.find({ courseId: courseId, userId: userId }).sort({ type: 1, startTime: 1 });
+    // Sorting logic needs review: .sort({ type: 1, startTime: 1 })
+    // Maybe sort by type, then first schedule entry's day/time?
+    // For now, just sort by type:
+    const taskDefinitions = await TaskDefinition.find({ courseId: courseId, userId: userId }).sort({ type: 1 });
 
     console.log(`Found ${taskDefinitions.length} task definitions for course ${courseId}, user: ${userId}`);
     res.status(200).json(taskDefinitions);
@@ -126,17 +127,21 @@ const updateTaskDefinition = async (req, res) => {
   try {
     const userId = req.user.userId;
     const { taskDefinitionId } = req.params;
-    const updateData = req.body;
+    const updateData = req.body; // Contains potentially updated schedule
 
-    // Optional: Prevent changing the courseId or userId
+    // Ensure we don't accidentally delete schedule if it's not provided in an update
+    // However, if an empty schedule array is explicitly provided, it should fail validation
+    // based on the model's required validator.
+
+    // Prevent changing the courseId or userId
     delete updateData.courseId;
     delete updateData.userId;
 
-    // Find and update the task definition, ensuring ownership
+    // Find and update, runValidators will check the new schedule format
     updatedTaskDefinition = await TaskDefinition.findOneAndUpdate(
-      { _id: taskDefinitionId, userId: userId }, // Filter
-      updateData,                              // Updates
-      { new: true, runValidators: true }       // Options
+      { _id: taskDefinitionId, userId: userId },
+      updateData,
+      { new: true, runValidators: true }
     );
 
     if (!updatedTaskDefinition) {
@@ -147,6 +152,7 @@ const updateTaskDefinition = async (req, res) => {
     console.log(`TaskDefinition updated successfully: ${taskDefinitionId}`);
 
     // ** Delete Future Instances and Regenerate After Successful Update **
+    // This service needs updating
     try {
         const today = new Date();
         today.setHours(0, 0, 0, 0); // Start of today

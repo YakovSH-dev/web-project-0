@@ -4,9 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useSemester } from '../../context/SemesterContext';
 import AddCourseModal from '../course/AddCourseModal';
+import CourseWindow from '../course/CourseWindow';
 
-// Placeholder for a real Logo component or img tag
-const Logo = () => <span className="font-bold text-lg">Logo</span>;
+// Replace the placeholder span with an actual img tag
+const Logo = () => (
+  <img src="/DiakstraLogo3.png" alt="Diakstra Logo" className="h-8 w-auto" /> // Adjust height (h-8) as needed
+);
 
 function MainLayout() {
   const { t, i18n } = useTranslation();
@@ -21,6 +24,8 @@ function MainLayout() {
 
   // State for modal visibility
   const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
+  const [isCourseWindowOpen, setIsCourseWindowOpen] = useState(false);
+  const [selectedCourseForWindow, setSelectedCourseForWindow] = useState(null);
 
   // Use user name from context, provide fallback
   const userName = user?.name || t('user');
@@ -43,8 +48,15 @@ function MainLayout() {
   };
 
   const handleCourseClick = (courseId) => {
-    // TODO: Implement course info/edit modal/view
-    console.log('Course clicked:', courseId);
+    // Find the full course object
+    const selectedCourse = activeSemesterCourses.find(course => course._id === courseId);
+    if (selectedCourse) {
+      console.log('Opening Course Window for:', selectedCourse.name);
+      setSelectedCourseForWindow(selectedCourse);
+      setIsCourseWindowOpen(true);
+    } else {
+      console.error('Could not find course with id:', courseId);
+    }
   };
 
   const handleAddCourseClick = () => {
@@ -54,6 +66,11 @@ function MainLayout() {
 
   const handleCloseAddCourseModal = () => {
       setIsAddCourseModalOpen(false);
+  };
+
+  const handleCloseCourseWindow = () => {
+    setIsCourseWindowOpen(false);
+    setSelectedCourseForWindow(null);
   };
 
   const handleCourseAdded = (newCourse) => {
@@ -142,11 +159,18 @@ function MainLayout() {
         <Outlet /> 
       </main>
 
-      {/* Render the modal */} 
+      {/* Render the AddCourse modal */} 
       <AddCourseModal 
         isOpen={isAddCourseModalOpen}
         onClose={handleCloseAddCourseModal}
         onCourseAdded={handleCourseAdded} 
+      />
+
+      {/* Render the CourseWindow modal */}
+      <CourseWindow
+        course={selectedCourseForWindow}
+        open={isCourseWindowOpen}
+        onClose={handleCloseCourseWindow}
       />
     </div>
   );

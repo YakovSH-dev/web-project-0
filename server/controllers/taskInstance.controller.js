@@ -141,20 +141,56 @@ const getTaskInstanceById = async (req, res) => {
   }
 };
 
-// --- Update TaskInstance by ID (e.g., mark as complete, add notes) ---
+// --- Update TaskInstance by ID (e.g., mark as complete, add description, LOU) ---
 const updateTaskInstance = async (req, res) => {
   console.log(`Processing updateTaskInstance request for user: ${req.user?.userId}, taskInstanceId: ${req.params.taskInstanceId}`);
   try {
-    // Placeholder: Get userId, taskInstanceId, updateData
-    // Placeholder: Prevent changing taskDefinitionId, userId
-    // Placeholder: Find and update using findOneAndUpdate, _id, userId filter, {new: true, runValidators: true}
-    // Placeholder: Handle not found (404)
-    // Placeholder: Return 200 status
-    res.status(501).json({ message: 'Not Implemented' });
+    const userId = req.user.userId;
+    const { taskInstanceId } = req.params;
+    const updateData = req.body;
+
+    // **Important:** Explicitly define allowed fields to prevent unwanted updates
+    const allowedUpdates = {};
+    if (updateData.hasOwnProperty('isCompleted')) {
+        allowedUpdates.isCompleted = updateData.isCompleted;
+    }
+    if (updateData.hasOwnProperty('description')) {
+        allowedUpdates.description = updateData.description;
+    }
+    if (updateData.hasOwnProperty('levelOfUnderstanding')) {
+         // Add validation for LOU range if needed here or rely on schema
+        allowedUpdates.levelOfUnderstanding = updateData.levelOfUnderstanding;
+    }
+
+    // Check if any valid fields were provided for update
+    if (Object.keys(allowedUpdates).length === 0) {
+      return res.status(400).json({ message: 'No valid fields provided for update' });
+    }
+
+    // Find the instance and update it, ensuring ownership
+    const updatedTaskInstance = await TaskInstance.findOneAndUpdate(
+      { _id: taskInstanceId, userId: userId }, // Filter
+      { $set: allowedUpdates }, // Use $set with only allowed fields
+      { new: true, runValidators: true }  // Options: return updated, run schema validation
+    );
+
+    if (!updatedTaskInstance) {
+      console.log(`Update failed: TaskInstance not found or access denied for ID: ${taskInstanceId}, user: ${userId}`);
+      return res.status(404).json({ message: 'TaskInstance not found or access denied' });
+    }
+
+    console.log(`TaskInstance updated successfully: ${taskInstanceId}`);
+    res.status(200).json(updatedTaskInstance);
+
   } catch (error) {
     console.error(`Error updating task instance ${req.params.taskInstanceId}:`, error);
-    // Placeholder: Handle validation/cast/server errors
-    res.status(500).json({ message: 'Server error', error: error.message });
+    if (error.name === 'ValidationError') {
+        return res.status(400).json({ message: 'Validation Error', errors: error.errors });
+    }
+    if (error.name === 'CastError') {
+        return res.status(400).json({ message: 'Invalid task instance ID format' });
+    }
+    res.status(500).json({ message: 'Server error while updating task instance', error: error.message });
   }
 };
 

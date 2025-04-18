@@ -45,5 +45,90 @@
   "todayButton": "Today",
   "viewDay": "Day",
   "viewWeek": "Week",
-  "viewSemester": "Semester"
+  "viewSemester": "Semester",
+  "noTasksDay": "No tasks scheduled for this day.",
+  "untitledTask": "Untitled Task",
+  "noCourse": "No Course",
+  "common": {
+    "placeholder": "placeholder",
+    "notAvailable": "N/A",
+    "cancel": "Cancel",
+    "loadingCourseData": "Loading course data..."
+  },
+  "days": {
+    "sunday": "Sunday",
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday"
+  },
+  "taskTypes": {
+    "Lecture": "Lecture",
+    "Lab": "Lab",
+    "Tutorial": "Tutorial",
+    "Seminar": "Seminar",
+    "Workshop": "Workshop",
+    "Reading": "Reading",
+    "Exam": "Exam",
+    "Other": "Other"
+  },
+  "courseWindow": {
+    "buttons": {
+      "addTaskDef": "Add Task Def",
+      "addTaskDefTooltip": "Add a new task definition for this course",
+      "editCourse": "Edit Course",
+      "editCourseTooltip": "Edit course details",
+      "deleteCourse": "Delete Course",
+      "deleteCourseTooltip": "Delete this course"
+    },
+    "basicInfo": {
+      "title": "Basic Info",
+      "taskInstancesLabel": "Task Instances",
+      "progressLabel": "Progress",
+      "understandingLabel": "Understanding"
+    },
+    "taskDefinitions": {
+      "title": "Task Definitions",
+      "noneFound": "No task definitions created yet.",
+      "noSchedule": "No schedule defined",
+      "editTooltip": "Edit Definition",
+      "deleteTooltip": "Delete Definition",
+      "deleteConfirm": "Are you sure you want to delete the {{taskType}} definition? This cannot be undone and will delete all future instances."
+    },
+    "weeklyInstances": {
+      "title": "Weekly Task Instances",
+      "placeholderText": "(Task instances will be shown here grouped by week)"
+    },
+    "errors": {
+      "loadDefinitionsFailed": "Could not load task definitions.",
+      "deleteDefinitionFailed": "Could not delete task definition."
+    }
+  },
+  "addTaskForm": {
+    "modalTitle": {
+      "create": "Create Task Definition",
+      "edit": "{{courseName}} - Create Task Definition"
+    },
+    "typeLabel": "Type",
+    "descriptionLabel": "Description (Optional)",
+    "lengthLabel": "Length (minutes, optional)",
+    "scheduleTitle": "Schedule",
+    "dayLabel": "Day",
+    "selectDayPlaceholder": "Select Day",
+    "startTimeLabel": "Start Time",
+    "addTimeSlotButton": "Add Time Slot",
+    "removeTimeSlotAria": "Remove schedule entry",
+    "createButton": "Create Task Definition",
+    "successMessage": "Task definition \"{{taskName}}\" created successfully!",
+    "errors": {
+      "missingCourse": "Course information is missing.",
+      "invalidForm": "Please fill in Type and at least one valid Day/Time schedule entry.",
+      "submitFailed": "Failed to create task definition."
+    }
+  },
+  "taskCard": {
+    "toggleCompleteAria": "Mark task {{taskName}} as complete"
+  }
 } 

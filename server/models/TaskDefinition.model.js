@@ -1,38 +1,48 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
+const scheduleEntrySchema = new Schema({
+  dayOfWeek: { // 0=Sun, 1=Mon, ..., 6=Sat
+    type: Number,
+    required: [true, 'Day of week is required for schedule entry'],
+    min: [0, 'Day of week must be between 0 and 6'],
+    max: [6, 'Day of week must be between 0 and 6']
+  },
+  startTime: { // e.g., "09:00"
+    type: String,
+    required: [true, 'Start time is required for schedule entry'],
+    trim: true,
+    match: [/^([01]\d|2[0-3]):([0-5]\d)$/, 'Start time must be in HH:MM format']
+  }
+}, { _id: false }); // No separate _id for schedule entries
+
 const taskDefinitionSchema = new Schema(
   {
     type: {
       type: String,
       required: [true, 'Task type is required'],
-      enum: ['Lecture', 'Lab', 'Tutorial', 'Seminar', 'Workshop', 'Other'], // Example enum values
+      enum: ['Lecture', 'Lab', 'Tutorial', 'Seminar', 'Workshop', 'Reading', 'Exam', 'Other'], // Updated enum
       trim: true,
     },
     instructor: {
       type: String,
       trim: true,
     },
-    daysOfWeek: {
-      type: [Number], // Array of numbers (0=Sun, 1=Mon, ..., 6=Sat)
-      required: [true, 'Days of week are required'],
+    schedule: {
+      type: [scheduleEntrySchema], // Array of schedule entries
+      required: [true, 'At least one schedule entry (day and time) is required'],
       validate: {
         validator: function(v) {
-          // Ensure all values are integers between 0 and 6
-          return Array.isArray(v) && v.length > 0 && v.every(day => Number.isInteger(day) && day >= 0 && day <= 6);
+          return Array.isArray(v) && v.length > 0;
         },
-        message: props => `${props.value} is not a valid array of days (0-6)`
-      },
+        message: 'Schedule cannot be empty.'
+      }
     },
     length: { // Duration in minutes
       type: Number,
-      min: [0, 'Length cannot be negative']
-    },
-    startTime: { // e.g., "09:00"
-      type: String,
-      trim: true,
-      // Optional: Add validation for time format (HH:MM)
-      match: [/^([01]\d|2[0-3]):([0-5]\d)$/, 'Start time must be in HH:MM format']
+      min: [0, 'Length cannot be negative'],
+      // Consider making length required if applicable
+      // required: [true, 'Task length/duration is required']
     },
     // Reference to the Course this task belongs to
     courseId: {

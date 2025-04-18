@@ -45,5 +45,90 @@
   "todayButton": "היום",
   "viewDay": "יום",
   "viewWeek": "שבוע",
-  "viewSemester": "סמסטר"
+  "viewSemester": "סמסטר",
+  "noTasksDay": "אין שיעורים מתוכננים ליום זה.",
+  "untitledTask": "שיעור ללא שם",
+  "noCourse": "ללא קורס",
+  "common": {
+    "placeholder": "(placeholder)",
+    "notAvailable": "לא זמין",
+    "cancel": "ביטול",
+    "loadingCourseData": "טוען נתוני קורס..."
+  },
+  "days": {
+    "sunday": "ראשון",
+    "monday": "שני",
+    "tuesday": "שלישי",
+    "wednesday": "רביעי",
+    "thursday": "חמישי",
+    "friday": "שישי",
+    "saturday": "שבת"
+  },
+  "taskTypes": {
+    "Lecture": "הרצאה",
+    "Lab": "מעבדה",
+    "Tutorial": "תרגול",
+    "Seminar": "סמינר",
+    "Workshop": "סדנה",
+    "Reading": "קריאה",
+    "Exam": "מבחן",
+    "Other": "אחר"
+  },
+  "courseWindow": {
+    "buttons": {
+      "addTaskDef": "הוסף הגדרת משימה",
+      "addTaskDefTooltip": "הוסף הגדרת משימה חדשה לקורס זה",
+      "editCourse": "ערוך קורס",
+      "editCourseTooltip": "ערוך פרטי קורס",
+      "deleteCourse": "מחק קורס",
+      "deleteCourseTooltip": "מחק קורס זה"
+    },
+    "basicInfo": {
+      "title": "מידע בסיסי",
+      "taskInstancesLabel": "מופעי משימות",
+      "progressLabel": "התקדמות",
+      "understandingLabel": "רמת הבנה"
+    },
+    "taskDefinitions": {
+      "title": "הגדרות משימה",
+      "noneFound": "עדיין לא נוצרו הגדרות משימה.",
+      "noSchedule": "לא הוגדר לוח זמנים",
+      "editTooltip": "ערוך הגדרה",
+      "deleteTooltip": "מחק הגדרה",
+      "deleteConfirm": "האם אתה בטוח שברצונך למחוק את הגדרת ה-{{taskType}}? פעולה זו אינה ניתנת לביטול ותמחק את כל המופעים העתידיים."
+    },
+    "weeklyInstances": {
+      "title": "מופעי משימות שבועיים",
+      "placeholderText": "(מופעי משימות יוצגו כאן מקובצים לפי שבוע)"
+    },
+    "errors": {
+      "loadDefinitionsFailed": "טעינת הגדרות המשימה נכשלה.",
+      "deleteDefinitionFailed": "מחיקת הגדרת המשימה נכשלה."
+    }
+  },
+  "addTaskForm": {
+    "modalTitle": {
+      "create": "צור הגדרת משימה",
+      "edit": "{{courseName}} - צור הגדרת משימה"
+    },
+    "typeLabel": "סוג",
+    "descriptionLabel": "תיאור (אופציונלי)",
+    "lengthLabel": "אורך (דקות, אופציונלי)",
+    "scheduleTitle": "לוח זמנים",
+    "dayLabel": "יום",
+    "selectDayPlaceholder": "בחר יום",
+    "startTimeLabel": "שעת התחלה",
+    "addTimeSlotButton": "הוסף מועד",
+    "removeTimeSlotAria": "הסר מועד",
+    "createButton": "צור הגדרת משימה",
+    "successMessage": "הגדרת משימה \"{{taskName}}\" נוצרה בהצלחה!",
+    "errors": {
+      "missingCourse": "פרטי הקורס חסרים.",
+      "invalidForm": "אנא מלא סוג ולפחות מועד (יום ושעה) תקין אחד.",
+      "submitFailed": "יצירת הגדרת המשימה נכשלה."
+    }
+  },
+  "taskCard": {
+    "toggleCompleteAria": "סמן משימה {{taskName}} כהושלמה"
+  }
 } 

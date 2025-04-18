@@ -1,8 +1,15 @@
 // src/components/dashboard/MainViewPanel.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSemester } from '../../context/SemesterContext';
 import { getDailyView, getWeeklyView, getSemesterView } from '../../services/views';
+import { updateTaskInstance } from '../../services/taskInstance';
+// Removed TaskCard import
+
+// Import the new view content components
+import DailyViewContent from './views/DailyViewContent';
+import WeeklyViewContent from './views/WeeklyViewContent';
+import SemesterViewContent from './views/SemesterViewContent';
 
 // Helper function to get the start of the current week (Sunday)
 const getStartOfWeek = (date = new Date()) => {
@@ -105,32 +112,82 @@ function MainViewPanel() {
       setCurrentDate(new Date());
   };
 
+  const handleTaskCardClick = (taskId) => {
+    console.log(`MainViewPanel: Task card clicked: ${taskId}. Opening Task Window (TODO)`);
+    // TODO: Implement logic to open the Task Window modal/view for this taskId
+  };
+
+  // --- Handler for Toggling Task Completion (with Optimistic Update) ---
+  const handleToggleComplete = useCallback(async (taskId, currentCompletedState) => {
+      // For Day view, viewData is an array of tasks.
+      // For Week/Semester, it might be structured differently.
+      // This handler might need to be passed further down or adapted.
+      
+      if (viewType === 'day' && viewData && Array.isArray(viewData)) {
+          const newCompletedState = !currentCompletedState;
+          const originalViewData = [...viewData];
+
+          // Optimistic Update for Day View
+          setViewData(prevData => 
+              prevData.map(task => 
+                  task._id === taskId ? { ...task, isCompleted: newCompletedState } : task
+              )
+          );
+
+          try {
+              console.log(`MainViewPanel: Updating task ${taskId} completion to ${newCompletedState}`);
+              await updateTaskInstance(taskId, { isCompleted: newCompletedState });
+              console.log(`MainViewPanel: Task ${taskId} updated successfully on backend.`);
+          } catch (error) {
+              console.error(`MainViewPanel: Failed to update task ${taskId} on backend:`, error);
+              // Rollback Day View Data
+              setViewData(originalViewData);
+              alert(t('errorUpdatingTask')); // Add key
+          }
+      } else {
+          console.warn('handleToggleComplete called for non-Day view or invalid data. Update needed.');
+          // TODO: Implement logic for Week/Semester view optimistic updates/rollback if needed.
+          // May involve finding the task within nested structures.
+          // For now, just call the API without optimistic update for other views.
+          try {
+            await updateTaskInstance(taskId, { isCompleted: !currentCompletedState });
+            // Re-fetch data for simplicity after update in non-day views?
+            // Or pass the update handler down to the specific view component.
+          } catch (error) {
+             alert(t('errorUpdatingTask'));
+          }
+      }
+  }, [viewData, viewType, t]);
+
   // --- Render Logic ---
   const renderViewContent = () => {
       if (isLoadingView || isLoadingSemesters) {
           return <div className="text-center p-4">{t('loading')}</div>;
       }
       if (errorView) {
-          return <div className="text-center p-4 text-red-600">{t('errorLoadingView')}</div>; // Add key
+          return <div className="text-center p-4 text-red-600">{t('errorLoadingView')}</div>;
       }
       if (!activeSemesterId) {
           return <div className="text-center p-4 text-gray-500">{t('noActiveSemester')}</div>;
       }
-      if (!viewData) {
-         // This might happen briefly or if fetch returns null/undefined
-         return <div className="text-center p-4 text-gray-500">{t('noDataAvailable')}</div>; // Add key
+      if (viewData === null) { 
+         return <div className="text-center p-4 text-gray-500">{t('noDataAvailable')}</div>;
       }
 
-      // TODO: Implement actual rendering based on viewType and viewData structure
-      if (viewType === 'day') {
-          return <pre>Day View Data:
-{JSON.stringify(viewData, null, 2)}</pre>;
-      } else if (viewType === 'week') {
-          return <pre>Week View Data:
-{JSON.stringify(viewData, null, 2)}</pre>;
-      } else { // semester
-          return <pre>Semester View Data:
-{JSON.stringify(viewData, null, 2)}</pre>;
+      // Render the appropriate view component
+      switch (viewType) {
+        case 'day':
+          return <DailyViewContent 
+                    tasks={viewData} // Pass data as tasks
+                    onTaskCardClick={handleTaskCardClick} 
+                    onToggleComplete={handleToggleComplete} 
+                 />;
+        case 'week':
+          return <WeeklyViewContent weeklyData={viewData} />; // Pass data
+        case 'semester':
+          return <SemesterViewContent semesterData={viewData} />; // Pass data
+        default:
+          return null; // Should not happen
       }
   };
 

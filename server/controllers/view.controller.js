@@ -92,7 +92,7 @@ const getGapsData = async (req, res) => {
     })
     .populate({
       path: 'taskDefinitionId', 
-      select: 'type courseId startTime length', // Select fields from TaskDefinition
+      select: 'type courseId description length', // Updated selection, removed startTime
       populate: {
         path: 'courseId',
         select: 'name color' // Select fields from Course
@@ -138,14 +138,13 @@ const getDailyViewData = async (req, res) => {
     })
     .populate({
       path: 'taskDefinitionId', 
-      select: 'type courseId startTime length',
+      select: 'type description length courseId', 
       populate: {
         path: 'courseId',
         select: 'name color'
       }
     })
-    // Sort primarily by start time from definition, then by instance date as fallback/tiebreaker
-    .sort({ 'taskDefinitionId.startTime': 1, date: 1 }); 
+    .sort({ date: 1 }); 
 
     console.log(`Found ${tasks.length} tasks for date ${startDate.toISOString().split('T')[0]}, user ${userId}`);
     res.status(200).json(tasks);
@@ -219,32 +218,29 @@ const getWeeklyViewData = async (req, res) => {
             preserveNullAndEmptyArrays: true // Keep instances even if course is missing
          }
       },
-      // 6. Sort by Course Name then Task Date/Time for consistent grouping later
+      // 6. Sort by Course Name then Task Date/Time 
       {
         $sort: {
           'courseInfo.name': 1,
-          date: 1,
-          'taskDefinitionInfo.startTime': 1
+          date: 1 // Sort by instance date directly
         }
       },
       // 7. Group by Course
       {
         $group: {
-          _id: '$courseInfo._id', // Group by course ID
+          _id: '$courseInfo._id',
           courseName: { $first: '$courseInfo.name' },
           courseColor: { $first: '$courseInfo.color' },
           instances: {
             $push: {
-              // Selectively push relevant instance and definition data
-              _id: '$_id', 
+              _id: '$_id',
               date: '$date',
-              description: '$description', 
+              description: '$description',
               isCompleted: '$isCompleted',
               levelOfUnderstanding: '$levelOfUnderstanding',
               taskType: '$taskDefinitionInfo.type',
-              taskStartTime: '$taskDefinitionInfo.startTime',
+              taskDescription: '$taskDefinitionInfo.description', // Add description
               taskLength: '$taskDefinitionInfo.length'
-              // Add any other fields needed by the frontend card
             }
           }
         }
