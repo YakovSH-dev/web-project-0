@@ -187,41 +187,33 @@ const updateTaskDefinition = async (req, res) => {
   }
 };
 
-// --- Delete TaskDefinition by ID ---
+// --- Delete TaskDefinition by ID (using middleware) ---
 const deleteTaskDefinition = async (req, res) => {
   console.log(`Processing deleteTaskDefinition request for user: ${req.user?.userId}, taskDefinitionId: ${req.params.taskDefinitionId}`);
   try {
     const userId = req.user.userId;
     const { taskDefinitionId } = req.params;
 
-    // Find and delete the task definition, ensuring ownership
-    const deletedTaskDefinition = await TaskDefinition.findOneAndDelete({ _id: taskDefinitionId, userId: userId });
+    // Step 1: Find the task definition document ensuring ownership
+    const definitionToDelete = await TaskDefinition.findOne({ _id: taskDefinitionId, userId: userId });
 
-    if (!deletedTaskDefinition) {
+    if (!definitionToDelete) {
       console.log(`Delete failed: TaskDefinition not found or access denied for ID: ${taskDefinitionId}, user: ${userId}`);
       return res.status(404).json({ message: 'TaskDefinition not found or access denied' });
     }
 
-    // ** Cascade Delete Logic (Optional but Recommended) **
-    // Delete all TaskInstances associated with this TaskDefinition
-    // Consider potential performance impact on large numbers of instances
-    try {
-        const deleteResult = await TaskInstance.deleteMany({ taskDefinitionId: taskDefinitionId, userId: userId });
-        console.log(`Cascade delete: Deleted ${deleteResult.deletedCount} TaskInstances for TaskDefinition ${taskDefinitionId}`);
-    } catch (cascadeError) {
-        console.error(`Error during cascade delete of TaskInstances for TaskDefinition ${taskDefinitionId}:`, cascadeError);
-        // Decide how to handle this error - maybe return a partial success?
-        // For now, we log it and continue, as the definition itself was deleted.
-    }
+    // Step 2: Call deleteOne() ON THE DOCUMENT to trigger middleware
+    await definitionToDelete.deleteOne();
 
-    console.log(`TaskDefinition deleted successfully: ${taskDefinitionId}`);
-    res.status(200).json({ message: 'TaskDefinition (and related instances) deleted successfully' });
+    console.log(`TaskDefinition deleted successfully (and middleware triggered): ${taskDefinitionId}`);
+    res.status(200).json({ message: 'TaskDefinition deleted successfully' });
 
   } catch (error) {
     console.error(`Error deleting task definition ${req.params.taskDefinitionId}:`, error);
     if (error.name === 'CastError') {
       return res.status(400).json({ message: 'Invalid task definition ID format' });
     }
+    // Handle potential errors from the 'pre remove' middleware as well
     res.status(500).json({ message: 'Server error while deleting task definition', error: error.message });
   }
 };

@@ -132,33 +132,33 @@ const updateCourse = async (req, res) => {
   }
 };
 
-// --- Delete Course by ID ---
+// --- Delete Course by ID (using middleware) ---
 const deleteCourse = async (req, res) => {
    console.log(`Processing deleteCourse request for user: ${req.user?.userId}, courseId: ${req.params.courseId}`);
    try {
     const userId = req.user.userId;
     const { courseId } = req.params;
 
-    // Find the course and delete it, ensuring it belongs to the user
-    const deletedCourse = await Course.findOneAndDelete({ _id: courseId, userId: userId });
+    // Step 1: Find the course document ensuring ownership
+    const courseToDelete = await Course.findOne({ _id: courseId, userId: userId });
 
-    if (!deletedCourse) {
+    if (!courseToDelete) {
       console.log(`Delete failed: Course not found or access denied for courseId: ${courseId}, user: ${userId}`);
       return res.status(404).json({ message: 'Course not found or access denied' });
     }
 
-    console.log(`Course deleted successfully: ${courseId}`);
-    // Send success response (200 OK with message, or 204 No Content)
-    res.status(200).json({ message: 'Course deleted successfully' }); 
-    // Alternatively: res.status(204).send(); 
+    // Step 2: Call deleteOne() ON THE DOCUMENT to trigger middleware
+    await courseToDelete.deleteOne(); 
 
-    // Note: Consider deleting related assignments, tasks, notes here too if needed (cascade delete logic)
+    console.log(`Course deleted successfully (and middleware triggered): ${courseId}`);
+    res.status(200).json({ message: 'Course deleted successfully' }); 
 
   } catch (error) {
     console.error(`Error deleting course ${req.params.courseId}:`, error);
      if (error.name === 'CastError') { 
         return res.status(400).json({ message: 'Invalid course ID format' });
     }
+    // Handle potential errors from the 'pre remove' middleware as well
     res.status(500).json({ message: 'Server error while deleting course', error: error.message });
   }
 };

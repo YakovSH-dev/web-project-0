@@ -28,7 +28,7 @@ import ScheduleIcon from '@mui/icons-material/Schedule'; // Icon for schedule su
 
 // Import the service function
 import { getTaskDefinitionsByCourse, deleteTaskDefinition } from '../../services/taskDefinition';
-
+import { deleteCourse } from '../../services/course'; 
 // Style for the main course window modal (can be larger than the form)
 const style = {
   position: 'absolute',
@@ -92,6 +92,7 @@ function CourseWindow({ course, open, onClose }) {
   const [taskDefinitions, setTaskDefinitions] = useState([]);
   const [isLoadingDefinitions, setIsLoadingDefinitions] = useState(false);
   const [definitionError, setDefinitionError] = useState('');
+  const [courseError, setCourseError] = useState(''); // Add state for course-level errors
 
   // --- Fetch Definitions --- (Refactored Effect)
   useEffect(() => {
@@ -99,6 +100,7 @@ function CourseWindow({ course, open, onClose }) {
       if (open && course?._id) {
         setIsLoadingDefinitions(true);
         setDefinitionError('');
+        setCourseError(''); // Clear course error on open/refresh
         setTaskDefinitions([]); // Clear previous definitions
         // TODO: Also fetch task instances here or in separate effect
         setTaskInstances([]); // Clear placeholder instances
@@ -118,6 +120,7 @@ function CourseWindow({ course, open, onClose }) {
         setTaskDefinitions([]);
         setTaskInstances([]);
         setDefinitionError('');
+        setCourseError('');
         setIsLoadingDefinitions(false);
       }
     };
@@ -149,10 +152,32 @@ function CourseWindow({ course, open, onClose }) {
     // setIsEditCourseModalOpen(true);
   };
 
-  const handleDeleteCourse = () => {
-    console.log('Delete Course clicked for:', course.name);
-    // TODO: Implement Delete Course functionality (needs confirmation dialog + backend call)
-    // Example: if (window.confirm(`Are you sure you want to delete ${course.name}?`)) { ... }
+  // Updated handleDeleteCourse
+  const handleDeleteCourse = async () => {
+    setCourseError(''); // Clear previous errors
+    if (!course || !course._id) return; // Should not happen if button is enabled
+
+    const confirmDelete = window.confirm(
+      // Use the newly added translation key
+      t('courseWindow.deleteConfirm', { courseName: course.name })
+    );
+
+    if (confirmDelete) {
+      console.log('Attempting to delete course:', course.name, course._id);
+      try {
+        await deleteCourse(course._id);
+        console.log('Course deleted successfully:', course.name);
+        // Close the modal (parent component should handle refresh)
+        onClose(); 
+      } catch (err) {
+        console.error('Failed to delete course:', err);
+        // Use the message from the error thrown by the service
+        const errorMessage = err.message || t('courseWindow.errors.deleteCourseFailed');
+        setCourseError(errorMessage);
+        // Show a more informative alert
+        alert(t('courseWindow.errors.deleteCourseFailed') + `\n\n${errorMessage}`);
+      }
+    }
   };
 
   const handleEditDefinition = (definitionId) => {
@@ -160,6 +185,7 @@ function CourseWindow({ course, open, onClose }) {
     // Open edit modal
   };
 
+  // Updated handleDeleteDefinition
   const handleDeleteDefinition = async (definitionId, definitionType) => {
     // Use a simple browser confirm for now
     const confirmDelete = window.confirm(
@@ -233,6 +259,8 @@ function CourseWindow({ course, open, onClose }) {
 
         {/* Content Section */}
         <Box sx={contentStyle}>
+          {/* Display course error if any */}
+          {courseError && <Alert severity="error" sx={{ mb: 2 }}>{courseError}</Alert>}
           <Stack spacing={3}>
             {/* Basic Info Section - Placeholder */}
             <Paper elevation={1} sx={{ p: 2 }}>

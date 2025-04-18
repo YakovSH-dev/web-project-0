@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
+// Import related model for cascade delete
+const TaskInstance = require('./TaskInstance.model.js');
+
 const scheduleEntrySchema = new Schema({
   dayOfWeek: { // 0=Sun, 1=Mon, ..., 6=Sat
     type: Number,
@@ -28,6 +31,7 @@ const taskDefinitionSchema = new Schema(
       type: String,
       trim: true,
     },
+    description: { type: String, trim: true }, // ADDED DESCRIPTION FIELD based on TaskCard usage
     schedule: {
       type: [scheduleEntrySchema], // Array of schedule entries
       required: [true, 'At least one schedule entry (day and time) is required'],
@@ -64,6 +68,20 @@ const taskDefinitionSchema = new Schema(
     timestamps: true,
   }
 );
+
+// Middleware for cascading delete - runs BEFORE a task definition is deleted via deleteOne()
+taskDefinitionSchema.pre('deleteOne', { document: true, query: false }, async function(next) {
+  console.log(`Cascade Deleting related TaskInstances for TaskDefinition: ${this._id}`);
+  try {
+    await TaskInstance.deleteMany({ taskDefinitionId: this._id });
+    console.log(`Successfully removed TaskInstances for TaskDefinition: ${this._id}`);
+    next(); // Continue with the TaskDefinition deletion
+  } catch (error) {
+    console.error(`Error during cascade delete for TaskDefinition ${this._id}:`, error);
+    // Pass the error to stop the deletion process if cascade fails
+    next(error); 
+  }
+});
 
 // Create the TaskDefinition model from the schema
 // Mongoose will create/use a collection named 'taskdefinitions'

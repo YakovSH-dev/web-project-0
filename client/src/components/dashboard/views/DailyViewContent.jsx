@@ -18,14 +18,15 @@ function DailyViewContent({ tasks, onTaskCardClick, onToggleComplete }) {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-1">
+    <div className="flex flex-wrap p-1">
       {tasks.map(task => (
-        <TaskCard
-          key={task._id}
-          task={task}
-          onCardClick={onTaskCardClick} // Pass down click handler
-          onToggleComplete={onToggleComplete} // Pass down toggle handler
-        />
+        <div key={task._id} className="p-2">
+          <TaskCard
+            task={task}
+            onCardClick={onTaskCardClick}
+            onToggleComplete={onToggleComplete}
+          />
+        </div>
       ))}
     </div>
   );

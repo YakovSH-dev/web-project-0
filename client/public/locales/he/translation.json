@@ -47,13 +47,22 @@
   "viewWeek": "שבוע",
   "viewSemester": "סמסטר",
   "noTasksDay": "אין שיעורים מתוכננים ליום זה.",
+  "noTasksWeek": "אין משימות מתוכננות לשבוע זה.",
+  "noTasksCourseWeek": "אין משימות לקורס זה השבוע.",
+  "noCoursesSemester": "לא נמצאו קורסים לסמסטר זה.",
+  "noDefinitionsCourse": "לא נמצאו הגדרות משימה לקורס זה.",
+  "errorUpdatingTask": "שגיאה בעדכון סטטוס המשימה. אנא נסה שוב.",
   "untitledTask": "שיעור ללא שם",
   "noCourse": "ללא קורס",
   "common": {
     "placeholder": "(placeholder)",
     "notAvailable": "לא זמין",
     "cancel": "ביטול",
-    "loadingCourseData": "טוען נתוני קורס..."
+    "loadingCourseData": "טוען נתוני קורס...",
+    "toBeImplemented": "(טרם הוטמע)",
+    "completed": "הושלם",
+    "missed": "פוספס",
+    "pending": "ממתין"
   },
   "days": {
     "sunday": "ראשון",
@@ -103,7 +112,20 @@
     },
     "errors": {
       "loadDefinitionsFailed": "טעינת הגדרות המשימה נכשלה.",
-      "deleteDefinitionFailed": "מחיקת הגדרת המשימה נכשלה."
+      "deleteDefinitionFailed": "מחיקת הגדרת המשימה נכשלה.",
+      "deleteCourseFailed": "מחיקת הקורס נכשלה."
+    },
+    "deleteConfirm": "האם למחוק את הקורס \"{{courseName}}\"? פעולה זו תמחק את כל הנתונים הקשורים אליו (הגדרות, מופעים וכו')."
+  },
+  "semesterView": {
+    "grid": {
+      "taskDefinition": "הגדרת משימה"
+    },
+    "table": {
+      "date": "תאריך",
+      "type": "סוג",
+      "description": "תיאור",
+      "completed": "בוצע"
     }
   },
   "addTaskForm": {

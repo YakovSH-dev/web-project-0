@@ -3,6 +3,11 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
+// Import related models needed for cascade delete
+const TaskDefinition = require('./TaskDefinition.model.js'); 
+// const Assignment = require('./Assignment.model.js'); // Uncomment if needed
+const TaskInstance = require('./TaskInstance.model.js'); // Uncomment if needed
+
 const courseSchema = new Schema(
   {
     name: {
@@ -48,6 +53,43 @@ const courseSchema = new Schema(
     timestamps: true,
   }
 );
+
+// Middleware for cascading delete - runs BEFORE a course document is deleted via deleteOne()
+courseSchema.pre('deleteOne', { document: true, query: false }, async function(next) {
+  console.log(`Cascade Deleting related data for course: ${this._id}`);
+  try {
+    // Find related Task Definitions
+    const definitionsToDelete = await TaskDefinition.find({ courseId: this._id });
+    console.log(`Found ${definitionsToDelete.length} Task Definitions to cascade delete.`);
+
+    // Create an array of promises for deleting each definition (triggers their middleware)
+    const deleteDefinitionPromises = definitionsToDelete.map(definition => {
+        console.log(`Triggering deleteOne() for Task Definition: ${definition._id}`);
+        // IMPORTANT: We must call deleteOne on the document instance
+        return definition.deleteOne(); 
+    });
+
+    // Also delete TaskInstances directly linked to the course (if any - depends on schema)
+    // If TaskInstances ONLY link via TaskDefinition, this might be redundant, but safer to include.
+    const deleteTaskInstancesPromise = TaskInstance.deleteMany({ courseId: this._id });
+    console.log(`Triggering direct deleteMany() for Task Instances linked to course: ${this._id}`);
+
+    // Execute all deletion promises
+    await Promise.all([
+        ...deleteDefinitionPromises, // Array of promises from definition.deleteOne()
+        deleteTaskInstancesPromise,
+        // Assignment.deleteMany({ courseId: this._id }), // Uncomment if needed
+        // Add other direct deletions here...
+    ]);
+
+    console.log(`Successfully cascade deleted related data for course: ${this._id}`);
+    next(); // Continue with the course deletion
+  } catch (error) {
+    console.error(`Error during cascade delete for course ${this._id}:`, error);
+    // Pass the error to stop the deletion process if cascade fails
+    next(error); 
+  }
+});
 
 // Create the Course model from the schema
 // Mongoose will create/use a collection named 'courses'

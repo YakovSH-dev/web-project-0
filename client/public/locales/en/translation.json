@@ -47,13 +47,22 @@
   "viewWeek": "Week",
   "viewSemester": "Semester",
   "noTasksDay": "No tasks scheduled for this day.",
+  "noTasksWeek": "No tasks scheduled for this week.",
+  "noTasksCourseWeek": "No tasks for this course this week.",
+  "noCoursesSemester": "No courses found for this semester.",
+  "noDefinitionsCourse": "No task definitions found for this course.",
+  "errorUpdatingTask": "Error updating task status. Please try again.",
   "untitledTask": "Untitled Task",
   "noCourse": "No Course",
   "common": {
     "placeholder": "placeholder",
     "notAvailable": "N/A",
     "cancel": "Cancel",
-    "loadingCourseData": "Loading course data..."
+    "loadingCourseData": "Loading course data...",
+    "toBeImplemented": "To Be Implemented",
+    "completed": "Completed",
+    "missed": "Missed",
+    "pending": "Pending"
   },
   "days": {
     "sunday": "Sunday",
@@ -103,7 +112,20 @@
     },
     "errors": {
       "loadDefinitionsFailed": "Could not load task definitions.",
-      "deleteDefinitionFailed": "Could not delete task definition."
+      "deleteDefinitionFailed": "Could not delete task definition.",
+      "deleteCourseFailed": "Could not delete course."
+    },
+    "deleteConfirm": "Are you sure you want to delete the course \"{{courseName}}\"? This will delete all related data (definitions, instances, etc.)."
+  },
+  "semesterView": {
+    "grid": {
+      "taskDefinition": "Task Definition"
+    },
+    "table": {
+      "date": "Date",
+      "type": "Type",
+      "description": "Description",
+      "completed": "Done"
     }
   },
   "addTaskForm": {

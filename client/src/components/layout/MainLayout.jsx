@@ -6,10 +6,8 @@ import { useSemester } from '../../context/SemesterContext';
 import AddCourseModal from '../course/AddCourseModal';
 import CourseWindow from '../course/CourseWindow';
 
-// Replace the placeholder span with an actual img tag
-const Logo = () => (
-  <img src="/DiakstraLogo3.png" alt="Diakstra Logo" className="h-8 w-auto" /> // Adjust height (h-8) as needed
-);
+// Changed Logo component to use an image
+const Logo = () => <img src="/DiakstraLogo3.png" alt="Logo" className="h-8 w-auto" />; // Adjust height as needed
 
 function MainLayout() {
   const { t, i18n } = useTranslation();
@@ -71,6 +69,8 @@ function MainLayout() {
   const handleCloseCourseWindow = () => {
     setIsCourseWindowOpen(false);
     setSelectedCourseForWindow(null);
+    // Refresh courses when window closes, in case of deletion/update
+    refreshActiveSemesterCourses(); 
   };
 
   const handleCourseAdded = (newCourse) => {
@@ -79,16 +79,16 @@ function MainLayout() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100">
+    <div className="min-h-screen flex flex-col">
       
-      <header className="bg-white shadow-md sticky top-0 z-10 w-full">
+      <header className="bg-theme-bg-secondary sticky top-0 z-10 w-full">
          <nav className="container mx-auto px-4 py-3 flex flex-wrap items-center justify-between">
            {/* Left Side: Logo & Semester */}
            <div className="flex items-center space-x-4 rtl:space-x-reverse mb-2 md:mb-0">
              <Logo />
              <button 
                onClick={handleSemesterClick}
-               className="text-gray-700 hover:text-blue-600 font-semibold"
+               className="text-theme-text-secondary hover:text-theme-primary font-semibold"
                disabled={isLoadingSemesters} // Disable while loading
               >
                  {semesterNameDisplay} {/* Use dynamic semester name */} 
@@ -97,15 +97,15 @@ function MainLayout() {
  
            {/* Center: Course Circles & Add Button */}
            <div className="flex items-center space-x-2 rtl:space-x-reverse flex-grow justify-center mb-2 md:mb-0 mx-4">
-              {/* Show loading indicator for courses? */}
-              {isLoadingCourses && <span className="text-xs text-gray-500">{t('loadingCourses')}</span>} 
+              {/* Changed loading text color */}
+              {isLoadingCourses && <span className="text-xs text-theme-text-secondary">{t('loadingCourses')}</span>} 
               {!isLoadingCourses && courses.map((course) => (
                  <button
                      key={course._id} // Use _id from MongoDB
                      onClick={() => handleCourseClick(course._id)}
                      title={course.name}
-                     // Remove dynamic background class, apply via inline style
-                     className={`w-8 h-8 rounded-full text-white flex items-center justify-center text-xs font-bold hover:opacity-80 transition-opacity shadow-sm`}
+                     // Changed text color, added border to distinguish from bg
+                     className={`w-8 h-8 rounded-full text-theme-text-primary border border-theme-secondary flex items-center justify-center text-xs font-bold hover:opacity-80 transition-opacity shadow-sm`}
                      // Apply background color using inline style
                      style={{ backgroundColor: course.color || '#808080' }} // Use course color or fallback gray
                  >
@@ -118,7 +118,8 @@ function MainLayout() {
                   <button 
                      onClick={handleAddCourseClick}
                      title={t('addCourseTitle')} // Add 'addCourseTitle' key
-                     className="w-8 h-8 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center text-lg font-bold hover:bg-gray-400 transition-colors shadow-sm"
+                     // Changed background, text, and hover colors
+                     className="w-8 h-8 rounded-full bg-theme-secondary text-theme-bg flex items-center justify-center text-lg font-bold hover:bg-theme-primary transition-colors shadow-sm"
                   >
                      +
                  </button>
@@ -127,23 +128,24 @@ function MainLayout() {
  
            {/* Right Side: User, Language & Logout */}
            <div className="flex items-center space-x-3 rtl:space-x-reverse">
-              <span className="text-sm text-gray-600 hidden sm:inline">{t('helloUser', { name: userName })}</span> {/* Use i18n for greeting */}
-              {/* Language Switcher */}
+              {/* Changed text color */}
+              <span className="text-sm text-theme-text-secondary hidden sm:inline">{t('helloUser', { name: userName })}</span> {/* Use i18n for greeting */}
+              {/* Language Switcher - Adjusted styles for dark theme */}
               <button 
                  onClick={() => handleLanguageChange('en')} 
                  disabled={i18n.language === 'en'}
-                 className={`px-2 py-1 text-xs rounded ${i18n.language === 'en' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                 className={`px-2 py-1 text-xs rounded ${i18n.language === 'en' ? 'bg-theme-primary text-theme-bg font-semibold' : 'bg-theme-secondary text-theme-text-primary hover:bg-opacity-80'}`}
              >
                  EN
              </button>
              <button 
                  onClick={() => handleLanguageChange('he')} 
                  disabled={i18n.language === 'he'}
-                 className={`px-2 py-1 text-xs rounded ${i18n.language === 'he' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                 className={`px-2 py-1 text-xs rounded ${i18n.language === 'he' ? 'bg-theme-primary text-theme-bg font-semibold' : 'bg-theme-secondary text-theme-text-primary hover:bg-opacity-80'}`}
              >
                  HE
              </button>
-             {/* Logout uses useAuth hook directly */}
+             {/* Logout - Adjusted styles */}
              <button 
                  onClick={useAuth().logout} // Call logout from useAuth directly
                  className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"

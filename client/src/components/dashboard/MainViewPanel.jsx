@@ -118,63 +118,112 @@ function MainViewPanel() {
   };
 
   // --- Handler for Toggling Task Completion (with Optimistic Update) ---
-  const handleToggleComplete = useCallback(async (taskId, currentCompletedState) => {
-      // For Day view, viewData is an array of tasks.
-      // For Week/Semester, it might be structured differently.
-      // This handler might need to be passed further down or adapted.
+  const handleToggleComplete = useCallback(async (instanceId, currentCompletedState) => {
+      if (!viewData) return; // Guard against null data
       
-      if (viewType === 'day' && viewData && Array.isArray(viewData)) {
-          const newCompletedState = !currentCompletedState;
-          const originalViewData = [...viewData];
+      const newCompletedState = !currentCompletedState;
+      // Need a deep copy for nested structures
+      const originalViewData = JSON.parse(JSON.stringify(viewData)); 
+      let updatedViewData = JSON.parse(JSON.stringify(viewData)); // Work on a copy
+      let taskFound = false;
 
-          // Optimistic Update for Day View
-          setViewData(prevData => 
-              prevData.map(task => 
-                  task._id === taskId ? { ...task, isCompleted: newCompletedState } : task
-              )
-          );
+      try {
+          if (viewType === 'day' && Array.isArray(updatedViewData)) {
+              // --- Day View Logic (Existing) ---
+              updatedViewData = updatedViewData.map(task => {
+                  if (task._id === instanceId) {
+                      taskFound = true;
+                      return { ...task, isCompleted: newCompletedState };
+                  }
+                  return task;
+              });
+          } else if (viewType === 'week' && Array.isArray(updatedViewData)) {
+              // --- Week View Logic --- 
+              updatedViewData.forEach(courseGroup => {
+                  if (courseGroup.instances && Array.isArray(courseGroup.instances)) {
+                      courseGroup.instances = courseGroup.instances.map(task => {
+                           if (task._id === instanceId) {
+                               taskFound = true;
+                               return { ...task, isCompleted: newCompletedState };
+                           }
+                           return task;
+                      });
+                  }
+              });
+          } else if (viewType === 'semester' && Array.isArray(updatedViewData)) {
+              // --- Semester View Logic --- 
+              updatedViewData.forEach(courseGroup => {
+                 if (courseGroup.definitions && Array.isArray(courseGroup.definitions)) {
+                    courseGroup.definitions.forEach(definition => {
+                        if (definition.weeks && Array.isArray(definition.weeks)) {
+                           definition.weeks.forEach(week => {
+                               if (week.tasks && Array.isArray(week.tasks)) {
+                                   week.tasks = week.tasks.map(task => {
+                                       if (task.instanceId === instanceId) {
+                                           taskFound = true;
+                                           return { ...task, isCompleted: newCompletedState };
+                                       }
+                                       return task;
+                                   });
+                               }
+                           });
+                        }
+                    });
+                 }
+              });
+          } else {
+               console.warn(`handleToggleComplete called for unknown viewType '${viewType}' or invalid data.`);
+               // Fallback: Call API without optimistic update for unknown cases
+               await updateTaskInstance(instanceId, { isCompleted: newCompletedState });
+               // Consider re-fetching data here if optimistic update isn't possible
+               return; // Exit early
+          }
 
-          try {
-              console.log(`MainViewPanel: Updating task ${taskId} completion to ${newCompletedState}`);
-              await updateTaskInstance(taskId, { isCompleted: newCompletedState });
-              console.log(`MainViewPanel: Task ${taskId} updated successfully on backend.`);
-          } catch (error) {
-              console.error(`MainViewPanel: Failed to update task ${taskId} on backend:`, error);
-              // Rollback Day View Data
-              setViewData(originalViewData);
-              alert(t('errorUpdatingTask')); // Add key
+          if (!taskFound) {
+              console.warn(`Task with instanceId ${instanceId} not found in ${viewType} view data for optimistic update.`);
+              // Fallback: Call API without optimistic update if task wasn't found (shouldn't happen ideally)
+              await updateTaskInstance(instanceId, { isCompleted: newCompletedState });
+               // Consider re-fetching data here
+              return; // Exit early
           }
-      } else {
-          console.warn('handleToggleComplete called for non-Day view or invalid data. Update needed.');
-          // TODO: Implement logic for Week/Semester view optimistic updates/rollback if needed.
-          // May involve finding the task within nested structures.
-          // For now, just call the API without optimistic update for other views.
-          try {
-            await updateTaskInstance(taskId, { isCompleted: !currentCompletedState });
-            // Re-fetch data for simplicity after update in non-day views?
-            // Or pass the update handler down to the specific view component.
-          } catch (error) {
-             alert(t('errorUpdatingTask'));
-          }
+
+          // Optimistic UI update
+          setViewData(updatedViewData);
+          console.log(`Optimistically updated task ${instanceId} completion to ${newCompletedState} in ${viewType} view.`);
+
+          // Call API
+          await updateTaskInstance(instanceId, { isCompleted: newCompletedState });
+          console.log(`Task ${instanceId} updated successfully on backend.`);
+
+      } catch (error) {
+          console.error(`Failed to update task ${instanceId} on backend:`, error);
+          // Rollback UI on error
+          setViewData(originalViewData);
+          alert(t('errorUpdatingTask', 'Error updating task status. Please try again.')); // Add key
       }
-  }, [viewData, viewType, t]);
+  }, [viewData, viewType, t]); // Dependencies: viewData, viewType, t
 
   // --- Render Logic ---
   const renderViewContent = () => {
       if (isLoadingView || isLoadingSemesters) {
-          return <div className="text-center p-4">{t('loading')}</div>;
+          // Apply theme text color
+          return <div className="text-center p-4 text-theme-text-secondary">{t('loading')}</div>;
       }
       if (errorView) {
-          return <div className="text-center p-4 text-red-600">{t('errorLoadingView')}</div>;
+          // Use theme text color, maybe keep error color red
+          return <div className="text-center p-4 text-red-500">{t('errorLoadingView')}</div>;
       }
       if (!activeSemesterId) {
-          return <div className="text-center p-4 text-gray-500">{t('noActiveSemester')}</div>;
+          // Apply theme text color
+          return <div className="text-center p-4 text-theme-text-secondary">{t('noActiveSemester')}</div>;
       }
       if (viewData === null) { 
-         return <div className="text-center p-4 text-gray-500">{t('noDataAvailable')}</div>;
+         // Apply theme text color
+         return <div className="text-center p-4 text-theme-text-secondary">{t('noDataAvailable')}</div>;
       }
 
       // Render the appropriate view component
+      // Pass handlers down
       switch (viewType) {
         case 'day':
           return <DailyViewContent 
@@ -183,25 +232,36 @@ function MainViewPanel() {
                     onToggleComplete={handleToggleComplete} 
                  />;
         case 'week':
-          return <WeeklyViewContent weeklyData={viewData} />; // Pass data
+          return <WeeklyViewContent 
+                    weeklyData={viewData} // Pass data
+                    onTaskCardClick={handleTaskCardClick} 
+                    onToggleComplete={handleToggleComplete} // Pass toggle handler
+                 />;
         case 'semester':
-          return <SemesterViewContent semesterData={viewData} />; // Pass data
+          return <SemesterViewContent 
+                    semesterData={viewData} 
+                    onToggleComplete={handleToggleComplete} // Pass toggle handler
+                 />;
         default:
           return null; // Should not happen
       }
   };
 
   return (
-    <div className="bg-white p-4 shadow rounded h-full flex flex-col">
+    // Apply theme background and text color, remove shadow?
+    <div className="bg-theme-bg-secondary text-theme-text-primary p-4 rounded h-full flex flex-col">
       {/* Header for View Controls */}
-      <div className="flex justify-between items-center mb-4 pb-2 border-b">
+      {/* Apply theme border color */}
+      <div className="flex justify-between items-center mb-4 pb-2 border-b border-theme-secondary">
         {/* Date Navigation (only for day/week) */}
         {viewType !== 'semester' && (
           <div className="flex items-center space-x-2">
-            <button onClick={handlePrev} className="p-1 rounded hover:bg-gray-200 text-gray-600">&lt;</button>
-            <button onClick={handleToday} className="px-3 py-1 rounded text-sm hover:bg-gray-200 text-gray-700">{t('todayButton')}</button> {/* Add key */}
-            <button onClick={handleNext} className="p-1 rounded hover:bg-gray-200 text-gray-600">&gt;</button>
-            <span className="text-lg font-semibold ml-4">
+            {/* Apply theme text/hover colors */}
+            <button onClick={handlePrev} className="p-1 rounded hover:bg-theme-secondary text-theme-text-secondary hover:text-theme-text-primary">&lt;</button>
+            <button onClick={handleToday} className="px-3 py-1 rounded text-sm hover:bg-theme-secondary text-theme-text-secondary hover:text-theme-text-primary">{t('todayButton')}</button> {/* Add key */}
+            <button onClick={handleNext} className="p-1 rounded hover:bg-theme-secondary text-theme-text-secondary hover:text-theme-text-primary">&gt;</button>
+            {/* Apply theme text color */}
+            <span className="text-lg font-semibold ml-4 text-theme-text-primary">
                 {/* Display current date/week range */} 
                 {viewType === 'day' && formatDateForDisplay(currentDate, i18n.language)}
                 {viewType === 'week' && `${formatDateForDisplay(getStartOfWeek(currentDate), i18n.language)} - ${formatDateForDisplay(new Date(getStartOfWeek(currentDate).setDate(getStartOfWeek(currentDate).getDate() + 6)), i18n.language)}`}
@@ -211,23 +271,26 @@ function MainViewPanel() {
         {/* Empty div for spacing if semester view */}
          {viewType === 'semester' && <div></div>}
 
-        {/* View Type Switcher */}
-        <div className="flex space-x-1 border p-1 rounded-md">
+        {/* View Type Switcher - Apply theme colors */} 
+        <div className="flex space-x-1 border border-theme-secondary p-1 rounded-md">
           <button 
             onClick={() => handleViewChange('day')} 
-            className={`px-3 py-1 text-sm rounded ${viewType === 'day' ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}`}
+            // Apply theme active/inactive/hover styles
+            className={`px-3 py-1 text-sm rounded ${viewType === 'day' ? 'bg-theme-primary text-theme-bg font-semibold' : 'hover:bg-theme-secondary hover:text-theme-text-primary text-theme-text-secondary'}`}
           >
             {t('viewDay')} {/* Add key */}
           </button>
           <button 
             onClick={() => handleViewChange('week')} 
-            className={`px-3 py-1 text-sm rounded ${viewType === 'week' ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}`}
+             // Apply theme active/inactive/hover styles
+            className={`px-3 py-1 text-sm rounded ${viewType === 'week' ? 'bg-theme-primary text-theme-bg font-semibold' : 'hover:bg-theme-secondary hover:text-theme-text-primary text-theme-text-secondary'}`}
            >
              {t('viewWeek')} {/* Add key */}
           </button>
           <button 
             onClick={() => handleViewChange('semester')} 
-            className={`px-3 py-1 text-sm rounded ${viewType === 'semester' ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}`}
+             // Apply theme active/inactive/hover styles
+            className={`px-3 py-1 text-sm rounded ${viewType === 'semester' ? 'bg-theme-primary text-theme-bg font-semibold' : 'hover:bg-theme-secondary hover:text-theme-text-primary text-theme-text-secondary'}`}
            >
              {t('viewSemester')} {/* Add key */}
           </button>
@@ -235,6 +298,7 @@ function MainViewPanel() {
       </div>
 
       {/* Content Area */}
+      {/* Let content components handle their own background/text? Or set defaults here? */}
       <div className="flex-grow overflow-auto">
         {renderViewContent()}
       </div>

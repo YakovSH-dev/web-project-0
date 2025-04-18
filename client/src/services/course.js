@@ -39,3 +39,29 @@ export const createCourse = async (courseData) => {
 };
 
 // Add other course-related API functions here later (e.g., updateCourse) 
+
+/**
+ * Deletes a course by its ID.
+ * @param {string} courseId - The ID of the course to delete.
+ * @returns {Promise<object>} The response data (usually empty or a confirmation).
+ */
+export const deleteCourse = async (courseId) => {
+  if (!courseId) {
+    return Promise.reject(new Error('Course ID is required for deletion.'));
+  }
+  try {
+    // Send DELETE request to /courses/:id
+    const response = await apiClient.delete(`/courses/${courseId}`);
+    return response.data; // Expecting confirmation or empty body
+  } catch (error) {
+    console.error(`Delete Course API error (courseId: ${courseId}):`, error.response || error);
+    // Construct a more informative error to throw
+    const errorMessage = error.response?.data?.message || error.message || 'Unknown error during course deletion.';
+    const status = error.response?.status || 500;
+    const errorToThrow = new Error(errorMessage);
+    errorToThrow.status = status;
+    // Add original error details if needed for deeper debugging
+    // errorToThrow.originalError = error.response?.data || error;
+    throw errorToThrow;
+  }
+}; 

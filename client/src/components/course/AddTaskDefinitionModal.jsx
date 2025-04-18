@@ -230,14 +230,15 @@ function AddTaskDefinitionModal({ course, open, onClose, onTaskDefinitionAdded }
                 {/* Dynamic Schedule Entries */}
                 <Stack spacing={2} sx={{ maxHeight: '300px', overflowY: 'auto', pr: 1 }}> {/* Scrollable schedule */} 
                   {scheduleEntries.map((entry, index) => (
-                    <Stack direction="row" spacing={1} key={index} alignItems="center">
-                      <FormControl sx={{ minWidth: 150 }} required>
+                    <Stack direction="row" spacing={1} key={index} alignItems="baseline">
+                      <FormControl sx={{ minWidth: 150 }} required variant="outlined">
                         <InputLabel id={`day-label-${index}`}>{t('addTaskForm.dayLabel')}</InputLabel>
                         <Select
                           labelId={`day-label-${index}`}
                           value={entry.dayOfWeek}
                           label={t('addTaskForm.dayLabel')}
                           onChange={(e) => handleScheduleChange(index, 'dayOfWeek', e.target.value)}
+                          sx={{ '.MuiSelect-select': { paddingY: '9px', lineHeight: 'normal' } }}
                         >
                           <MenuItem value=""><em>{t('addTaskForm.selectDayPlaceholder')}</em></MenuItem>
                           {translatedDayOptions.map(opt => (
@@ -252,14 +253,16 @@ function AddTaskDefinitionModal({ course, open, onClose, onTaskDefinitionAdded }
                         value={entry.startTime}
                         onChange={(e) => handleScheduleChange(index, 'startTime', e.target.value)}
                         InputLabelProps={{ shrink: true }}
-                        inputProps={{ step: 300 }} // 5 min steps
-                        sx={{ flexGrow: 1 }}
+                        inputProps={{ step: 300 }}
+                        size="small"
+                        sx={{ flexGrow: 1, '& .MuiInputBase-input': { paddingY: '9px', lineHeight: 'normal' } }}
                       />
                       <IconButton
                         aria-label={t('addTaskForm.removeTimeSlotAria')}
                         onClick={() => removeScheduleEntry(index)}
-                        disabled={scheduleEntries.length <= 1} // Disable remove for the first entry
+                        disabled={scheduleEntries.length <= 1}
                         color="error"
+                        sx={{ mb: -0.5 }}
                       >
                         <RemoveCircleOutlineIcon />
                       </IconButton>

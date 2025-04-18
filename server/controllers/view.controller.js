@@ -30,6 +30,20 @@ const getStartOfWeek = (date) => {
   return getStartOfDay(new Date(dt.setDate(diff)));
 };
 
+// Helper function to add days to a date
+const addDays = (date, days) => {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+};
+
+// Helper function to calculate week index (0-based) from semester start
+const getWeekIndex = (date, semesterStartDate) => {
+  const diffTime = Math.abs(getStartOfDay(date) - getStartOfDay(semesterStartDate));
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  return Math.floor(diffDays / 7);
+};
+
 // --- Dashboard: Upcoming Assignments Panel --- 
 const getUpcomingAssignments = async (req, res) => {
   console.log(`Processing getUpcomingAssignments request for user: ${req.user?.userId}`);
@@ -233,14 +247,23 @@ const getWeeklyViewData = async (req, res) => {
           courseColor: { $first: '$courseInfo.color' },
           instances: {
             $push: {
+              // Include TaskInstance fields
               _id: '$_id',
               date: '$date',
-              description: '$description',
+              description: '$description', // Instance-specific description (if any)
               isCompleted: '$isCompleted',
               levelOfUnderstanding: '$levelOfUnderstanding',
-              taskType: '$taskDefinitionInfo.type',
-              taskDescription: '$taskDefinitionInfo.description', // Add description
-              taskLength: '$taskDefinitionInfo.length'
+              // Construct the nested taskDefinitionId object MANUALLY
+              taskDefinitionId: {
+                _id: '$taskDefinitionInfo._id', // Get ID from looked-up definition
+                type: '$taskDefinitionInfo.type',
+                description: '$taskDefinitionInfo.description',
+                length: '$taskDefinitionInfo.length',
+                schedule: '$taskDefinitionInfo.schedule',
+                // Add other definition fields if needed by TaskCard
+                // *** Crucially, add the looked-up courseInfo here ***
+                courseId: '$courseInfo' 
+              }
             }
           }
         }
@@ -270,134 +293,119 @@ const getWeeklyViewData = async (req, res) => {
   }
 };
 
-// --- Dashboard: Main View - Semester --- 
+// --- Dashboard: Main View - Semester (Grid Format - Rows = Definitions, Cols = Weeks) --- 
 const getSemesterViewData = async (req, res) => {
-  console.log(`Processing getSemesterViewData request for user: ${req.user?.userId}`);
+  console.log(`Processing getSemesterViewData (Def x Week Grid) request for user: ${req.user?.userId}`);
   try {
     const userId = req.user.userId;
     const { semesterId } = req.query;
 
-    if (!semesterId) {
-      return res.status(400).json({ message: 'semesterId query parameter is required' });
+    if (!semesterId || !mongoose.Types.ObjectId.isValid(semesterId)) {
+      return res.status(400).json({ message: 'Valid semesterId query parameter is required' });
     }
 
-    // Validate semesterId format (basic Mongoose check)
-    if (!mongoose.Types.ObjectId.isValid(semesterId)) {
-      return res.status(400).json({ message: 'Invalid semesterId format.' });
+    // 1. Fetch Semester Details
+    const semester = await Semester.findById(semesterId).lean();
+    if (!semester || semester.userId.toString() !== userId) {
+      return res.status(404).json({ message: 'Semester not found or access denied' });
+    }
+    if (!semester.startDate || !semester.numberOfWeeks || isNaN(new Date(semester.startDate).getTime()) || semester.numberOfWeeks <= 0) {
+      console.error(`Semester ${semesterId} has invalid start date or number of weeks.`);
+      return res.status(500).json({ message: 'Invalid semester configuration found (start date or number of weeks).' });
     }
 
-    // 1. Find all courses belonging to this semester and user
-    const courses = await Course.find({ semesterId: semesterId, userId: userId }).select('_id');
-    if (!courses || courses.length === 0) {
-      console.log(`No courses found for semester ${semesterId}, user ${userId}`);
-      return res.status(200).json([]); // Return empty array if no courses
-    }
+    const semesterStartDate = getStartOfDay(semester.startDate);
+    const semesterEndDate = getEndOfDay(addDays(semesterStartDate, (semester.numberOfWeeks * 7) - 1));
+    const today = getStartOfDay(new Date());
+    const numberOfWeeks = semester.numberOfWeeks;
+    const currentWeekIndex = getWeekIndex(today, semesterStartDate); // Might be < 0 or >= numberOfWeeks if today is outside semester
+
+    // 2. Fetch Courses for the semester
+    const courses = await Course.find({ semesterId: semesterId, userId: userId }).lean();
+    if (!courses || courses.length === 0) return res.status(200).json([]);
     const courseIds = courses.map(c => c._id);
 
-    // 2. Find all Task Definitions linked to these courses
-    const definitions = await TaskDefinition.find({ courseId: { $in: courseIds }, userId: userId }).select('_id');
+    // 3. Fetch all Task Definitions for these courses
+    const definitions = await TaskDefinition.find({ courseId: { $in: courseIds }, userId: userId })
+        .select('_id type description courseId') // Select needed fields
+        .lean();
+    const definitionMap = new Map(definitions.map(d => [d._id.toString(), d]));
     const definitionIds = definitions.map(d => d._id);
 
-    if (definitionIds.length === 0) {
-        console.log(`No task definitions found for courses in semester ${semesterId}, user ${userId}`);
-        // We could still potentially fetch assignments later, but for now return based on task instances
-        // Alternatively, fetch courses and return them with empty instance lists
-        const courseDataOnly = await Course.find({ _id: { $in: courseIds } }).select('name color').lean();
-        const result = courseDataOnly.map(c => ({ courseId: c._id, courseName: c.name, courseColor: c.color, instances: [] }));
-        return res.status(200).json(result.sort((a, b) => a.courseName.localeCompare(b.courseName)));
+    // 4. Fetch all Task Instances for these definitions within the semester date range
+    const allInstances = await TaskInstance.find({
+      userId: userId,
+      taskDefinitionId: { $in: definitionIds }, // Match definitions for this semester
+      date: { $gte: semesterStartDate, $lte: semesterEndDate }
+    })
+    .select('_id date isCompleted taskDefinitionId') // Select only needed fields
+    .sort({ date: 1 })
+    .lean(); 
+
+    // 5. Process Data into the new Grid Structure [ Course -> Definition -> Weeks -> Tasks ]
+    const resultGrid = [];
+    for (const course of courses) {
+        const courseDefinitions = definitions.filter(d => d.courseId.toString() === course._id.toString());
+        
+        const processedDefinitions = courseDefinitions.map(def => {
+            const definitionWeeks = Array(numberOfWeeks).fill(null).map((_, weekIdx) => ({
+                weekIndex: weekIdx,
+                tasks: [] // Initialize tasks array for each week
+            }));
+
+            // Populate tasks for this definition
+            const definitionInstances = allInstances.filter(inst => inst.taskDefinitionId.toString() === def._id.toString());
+            for (const instance of definitionInstances) {
+                const instanceDate = getStartOfDay(instance.date);
+                const weekIndex = getWeekIndex(instanceDate, semesterStartDate);
+                
+                if (weekIndex >= 0 && weekIndex < numberOfWeeks) {
+                    const isMissed = instanceDate < today && !instance.isCompleted;
+                    definitionWeeks[weekIndex].tasks.push({
+                        instanceId: instance._id,
+                        isCompleted: instance.isCompleted,
+                        isMissed: isMissed
+                    });
+                } else {
+                     console.warn(`Instance ${instance._id} date ${instance.date} resulted in out-of-bounds week index ${weekIndex}`);
+                }
+            }
+
+            return {
+                definitionId: def._id,
+                type: def.type,
+                description: def.description,
+                weeks: definitionWeeks
+            };
+        });
+
+        // Sort definitions (e.g., by type, then description)
+        processedDefinitions.sort((a, b) => {
+            if (a.type !== b.type) return a.type.localeCompare(b.type);
+            return (a.description || '').localeCompare(b.description || '');
+        });
+
+        resultGrid.push({
+            courseId: course._id,
+            courseName: course.name,
+            courseColor: course.color,
+            semesterStartDate: semester.startDate.toISOString().split('T')[0],
+            numberOfWeeks: numberOfWeeks,
+            currentWeekIndex: currentWeekIndex, // Pass current week index
+            definitions: processedDefinitions // The processed rows for the grid
+        });
     }
 
-    // 3. Aggregate Task Instances linked to these definitions
-    const semesterData = await TaskInstance.aggregate([
-      // Match instances belonging to the definitions for this semester/user
-      {
-        $match: {
-          userId: new mongoose.Types.ObjectId(userId),
-          taskDefinitionId: { $in: definitionIds }
-        }
-      },
-      // Lookup definitions (needed for courseId and type/time)
-      {
-        $lookup: {
-          from: 'taskdefinitions',
-          localField: 'taskDefinitionId',
-          foreignField: '_id',
-          as: 'taskDefinitionInfo'
-        }
-      },
-      { $unwind: { path: "$taskDefinitionInfo", preserveNullAndEmptyArrays: true } },
-      // Lookup courses
-      {
-        $lookup: {
-          from: 'courses',
-          localField: 'taskDefinitionInfo.courseId',
-          foreignField: '_id',
-          as: 'courseInfo'
-        }
-      },
-      { $unwind: { path: "$courseInfo", preserveNullAndEmptyArrays: true } },
-      // Ensure we only include instances whose course *actually* belongs to the target semester 
-      // (handles edge cases if data integrity is imperfect)
-      {
-        $match: {
-          'courseInfo.semesterId': new mongoose.Types.ObjectId(semesterId)
-        }
-      },
-      // Sort for consistency within groups
-      {
-        $sort: {
-          'courseInfo.name': 1,
-          date: 1,
-          'taskDefinitionInfo.startTime': 1
-        }
-      },
-      // Group by Course
-      {
-        $group: {
-          _id: '$courseInfo._id',
-          courseName: { $first: '$courseInfo.name' },
-          courseColor: { $first: '$courseInfo.color' },
-          instances: {
-            $push: {
-              _id: '$_id',
-              date: '$date',
-              description: '$description',
-              isCompleted: '$isCompleted',
-              levelOfUnderstanding: '$levelOfUnderstanding',
-              taskType: '$taskDefinitionInfo.type',
-              taskStartTime: '$taskDefinitionInfo.startTime',
-              taskLength: '$taskDefinitionInfo.length'
-            }
-          }
-        }
-      },
-      // Final projection
-      {
-        $project: {
-          _id: 0,
-          courseId: '$_id',
-          courseName: 1,
-          courseColor: 1,
-          instances: 1
-        }
-      },
-      // Sort final course list
-      {
-        $sort: { courseName: 1 }
-      }
-    ]);
+    // Sort final result by course name
+    resultGrid.sort((a, b) => a.courseName.localeCompare(b.courseName));
 
-    // TODO: Consider adding Assignments to this view as well, potentially in a separate property per course.
-
-    console.log(`Found semester view data for ${semesterData.length} courses for semester ${semesterId}, user ${userId}`);
-    res.status(200).json(semesterData);
+    // console.log("Final Def x Week Grid structure:", JSON.stringify(resultGrid, null, 2)); // Keep commented for brevity
+    console.log(`Returning semester grid (Def x Week) data for ${resultGrid.length} courses, semester ${semesterId}`);
+    res.status(200).json(resultGrid);
 
   } catch (error) {
-    console.error('Error fetching semester view data:', error);
-    if (error.name === 'CastError') {
-      return res.status(400).json({ message: 'Invalid semesterId format.' });
-    }
-    res.status(500).json({ message: 'Server error while fetching semester view data', error: error.message });
+    console.error('Error fetching semester grid (Def x Week) view data:', error);
+    res.status(500).json({ message: 'Server error while fetching semester grid view data', error: error.message });
   }
 };
 
