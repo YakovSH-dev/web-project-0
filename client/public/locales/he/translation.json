@@ -152,5 +152,16 @@
   },
   "taskCard": {
     "toggleCompleteAria": "סמן משימה {{taskName}} כהושלמה"
+  },
+  "gapsPanel": {
+    "title": "משימות עבר שלא הושלמו",
+    "errorLoading": "נכשל בטעינת משימות עבר שלא הושלמו.",
+    "noGapsFound": "לא נמצאו משימות שלא הושלמו בתקופה שנבחרה. כל הכבוד!",
+    "taskDescriptionMissing": "תיאור משימה חסר",
+    "courseMissing": "קורס חסר",
+    "daysAgo_one": "לפני יום אחד",
+    "daysAgo_other": "לפני {{count}} ימים",
+    "weeksAgo_one": "לפני שבוע אחד",
+    "weeksAgo_other": "לפני {{count}} שבועות"
   }
 } 

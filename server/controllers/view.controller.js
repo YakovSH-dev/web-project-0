@@ -160,8 +160,65 @@ const getDailyViewData = async (req, res) => {
     })
     .sort({ date: 1 }); 
 
-    console.log(`Found ${tasks.length} tasks for date ${startDate.toISOString().split('T')[0]}, user ${userId}`);
-    res.status(200).json(tasks);
+    // *** ADD MISSED CONSECUTIVE COUNT CALCULATION ***
+    const requestUserId = new mongoose.Types.ObjectId(userId); 
+
+    // Use a traditional for loop to allow await inside
+    const finalTasks = []; // Create a new array for modified objects
+    for (let i = 0; i < tasks.length; i++) {
+        let instanceDoc = tasks[i]; // Original Mongoose document
+        let instance = instanceDoc.toObject(); // Convert to plain object
+
+        const definitionId = instance.taskDefinitionId?._id;
+        const instanceDate = new Date(instance.date);
+        
+        // Log the instance being processed
+        console.log(`Processing instance ${instance._id} for def ${definitionId} on date ${instance.date}`);
+
+        if (!definitionId) {
+            instance.missedConsecutiveCount = 0; 
+            console.log(`  -> No definitionId, count is 0`);
+            finalTasks.push(instance); // Add to the final array
+            continue;
+        }
+
+        // Find preceding instances
+        const precedingInstances = await TaskInstance.find({
+            userId: requestUserId, 
+            taskDefinitionId: definitionId,
+            date: { $lt: instanceDate }
+        })
+        .select('isCompleted date')
+        .sort({ date: -1 })
+        .lean();
+        
+        console.log(`  -> Found ${precedingInstances.length} preceding instances.`);
+
+        let consecutiveMissed = 0;
+        for (const preceding of precedingInstances) {
+            if (!preceding.isCompleted) {
+                consecutiveMissed++;
+            } else {
+                break; 
+            }
+        }
+        
+        console.log(`  -> Calculated consecutiveMissed: ${consecutiveMissed}`);
+        
+        // Add the count to the plain object
+        instance.missedConsecutiveCount = consecutiveMissed;
+        
+        finalTasks.push(instance); // Add the modified plain object to the final array
+    }
+    // *** END CALCULATION ***
+
+    // DEBUG: Log the final tasks array before sending
+    if (finalTasks.length > 0) {
+        console.log("First task object being sent in daily view:", JSON.stringify(finalTasks[0], null, 2));
+    }
+    
+    console.log(`Found ${finalTasks.length} tasks for date ${startDate.toISOString().split('T')[0]}, user ${userId}`);
+    res.status(200).json(finalTasks); // Send the array of plain objects
 
   } catch (error) {
     console.error('Error fetching daily view data:', error);
@@ -284,6 +341,44 @@ const getWeeklyViewData = async (req, res) => {
       }
     ]);
 
+    // *** ADD MISSED CONSECUTIVE COUNT CALCULATION ***
+    for (const courseGroup of weeklyData) {
+      if (courseGroup.instances && courseGroup.instances.length > 0) {
+        for (let i = 0; i < courseGroup.instances.length; i++) {
+          const instance = courseGroup.instances[i];
+          const definitionId = instance.taskDefinitionId?._id; // Get ID from nested object
+          const instanceDate = new Date(instance.date);
+
+          if (!definitionId) {
+            instance.missedConsecutiveCount = 0; // Cannot calculate without definition ID
+            continue;
+          }
+
+          // Find preceding instances for the same definition
+          const precedingInstances = await TaskInstance.find({
+            userId: new mongoose.Types.ObjectId(userId),
+            taskDefinitionId: definitionId,
+            date: { $lt: instanceDate }
+          })
+          .select('isCompleted date') // Only need these fields
+          .sort({ date: -1 }) // Sort most recent first
+          .lean();
+
+          let consecutiveMissed = 0;
+          for (const preceding of precedingInstances) {
+            if (!preceding.isCompleted) {
+              consecutiveMissed++;
+            } else {
+              break; // Stop counting once a completed one is found
+            }
+          }
+          // Add the count to the instance object
+          instance.missedConsecutiveCount = consecutiveMissed;
+        }
+      }
+    }
+    // *** END CALCULATION ***
+
     console.log(`Found weekly data structure for ${weeklyData.length} courses for week starting ${weekStart.toISOString().split('T')[0]}, user ${userId}`);
     res.status(200).json(weeklyData);
 
@@ -363,6 +458,7 @@ const getSemesterViewData = async (req, res) => {
                     const isMissed = instanceDate < today && !instance.isCompleted;
                     definitionWeeks[weekIndex].tasks.push({
                         instanceId: instance._id,
+                        date: instance.date,
                         isCompleted: instance.isCompleted,
                         isMissed: isMissed
                     });

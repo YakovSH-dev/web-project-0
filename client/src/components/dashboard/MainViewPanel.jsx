@@ -129,7 +129,7 @@ function MainViewPanel() {
 
       try {
           if (viewType === 'day' && Array.isArray(updatedViewData)) {
-              // --- Day View Logic (Existing) ---
+              // --- Day View Logic ---
               updatedViewData = updatedViewData.map(task => {
                   if (task._id === instanceId) {
                       taskFound = true;
@@ -144,28 +144,39 @@ function MainViewPanel() {
                       courseGroup.instances = courseGroup.instances.map(task => {
                            if (task._id === instanceId) {
                                taskFound = true;
-                               return { ...task, isCompleted: newCompletedState };
+                               // Also update isMissed flag based on new state
+                               const isMissed = (new Date(task.date) < new Date()) && !newCompletedState;
+                               return { ...task, isCompleted: newCompletedState, isMissed };
                            }
                            return task;
                       });
                   }
               });
           } else if (viewType === 'semester' && Array.isArray(updatedViewData)) {
-              // --- Semester View Logic --- 
+              // --- Semester View Logic (Def x Week structure) --- 
               updatedViewData.forEach(courseGroup => {
                  if (courseGroup.definitions && Array.isArray(courseGroup.definitions)) {
                     courseGroup.definitions.forEach(definition => {
                         if (definition.weeks && Array.isArray(definition.weeks)) {
-                           definition.weeks.forEach(week => {
+                           // Use map to return a new weeks array with updates
+                           definition.weeks = definition.weeks.map(week => {
+                               let weekUpdated = false;
+                               let updatedTasks = [];
                                if (week.tasks && Array.isArray(week.tasks)) {
-                                   week.tasks = week.tasks.map(task => {
+                                   updatedTasks = week.tasks.map(task => {
                                        if (task.instanceId === instanceId) {
                                            taskFound = true;
-                                           return { ...task, isCompleted: newCompletedState };
+                                           weekUpdated = true;
+                                           // Also update isMissed flag based on new state and AVAILABLE date
+                                           const instanceDate = task.date ? new Date(task.date) : null;
+                                           const isMissed = instanceDate && (instanceDate < new Date()) && !newCompletedState;
+                                           return { ...task, isCompleted: newCompletedState, isMissed: isMissed };
                                        }
                                        return task;
                                    });
                                }
+                               // Return the week object with the updated tasks array IF it was updated
+                               return weekUpdated ? { ...week, tasks: updatedTasks } : week; 
                            });
                         }
                     });
@@ -173,17 +184,13 @@ function MainViewPanel() {
               });
           } else {
                console.warn(`handleToggleComplete called for unknown viewType '${viewType}' or invalid data.`);
-               // Fallback: Call API without optimistic update for unknown cases
                await updateTaskInstance(instanceId, { isCompleted: newCompletedState });
-               // Consider re-fetching data here if optimistic update isn't possible
                return; // Exit early
           }
 
           if (!taskFound) {
               console.warn(`Task with instanceId ${instanceId} not found in ${viewType} view data for optimistic update.`);
-              // Fallback: Call API without optimistic update if task wasn't found (shouldn't happen ideally)
               await updateTaskInstance(instanceId, { isCompleted: newCompletedState });
-               // Consider re-fetching data here
               return; // Exit early
           }
 
@@ -199,9 +206,9 @@ function MainViewPanel() {
           console.error(`Failed to update task ${instanceId} on backend:`, error);
           // Rollback UI on error
           setViewData(originalViewData);
-          alert(t('errorUpdatingTask', 'Error updating task status. Please try again.')); // Add key
+          alert(t('errorUpdatingTask', 'Error updating task status. Please try again.'));
       }
-  }, [viewData, viewType, t]); // Dependencies: viewData, viewType, t
+  }, [viewData, viewType, t]);
 
   // --- Render Logic ---
   const renderViewContent = () => {

@@ -42,15 +42,28 @@ function TaskCard({ task, onCardClick, onToggleComplete }) {
   // --- Card Styling ---
   const cardSizeClasses = "w-48 h-48"; // Example size
 
+  // --- Missed Count --- 
+  const missedCount = task?.missedConsecutiveCount || 0;
+
   return (
-    // Use a button element for the main container for better semantics/accessibility
+    // Add relative positioning for the badge
     <button
       type="button"
       onClick={handleCardClick}
       disabled={!onCardClick} // Disable button if no handler is passed
       // Apply theme: bg, border, hover, focus, text-align, disabled
-      className={`flex flex-col justify-between ${cardSizeClasses} p-3 border border-theme-secondary rounded-lg shadow-sm hover:shadow-md hover:border-theme-primary focus:outline-none focus:ring-2 focus:ring-theme-primary focus:ring-opacity-75 transition-all bg-theme-bg relative overflow-hidden text-left rtl:text-right disabled:opacity-60 disabled:shadow-sm disabled:cursor-not-allowed disabled:border-theme-secondary`} 
+      className={`relative flex flex-col justify-between ${cardSizeClasses} p-3 border border-theme-secondary rounded-lg shadow-sm hover:shadow-md hover:border-theme-primary focus:outline-none focus:ring-2 focus:ring-theme-primary focus:ring-opacity-75 transition-all bg-theme-bg overflow-hidden text-left rtl:text-right disabled:opacity-60 disabled:shadow-sm disabled:cursor-not-allowed disabled:border-theme-secondary`} 
     >
+      {/* --- Missed Count Indicator Badge --- */}
+      {missedCount > 0 && (
+        <div 
+          className={`absolute top-1 ${i18n.dir() === 'rtl' ? 'left-1' : 'right-1'} z-10 w-4 h-4 rounded-full bg-red-600 text-white text-[10px] flex items-center justify-center font-bold shadow`}
+          title={t('taskCard.missedCountTooltip', { count: missedCount })}
+        >
+          {missedCount}
+        </div>
+      )}
+
       {/* Header Section: Course Name & Color Dot */}
       <div className="flex items-center mb-2 flex-shrink-0"> 
         <div

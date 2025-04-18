@@ -41,7 +41,7 @@
   "creatingButton": "Creating...",
   "createButton": "Create",
   "errorLoadingView": "Error loading view data.",
-  "noDataAvailable": "No data available for this view.",
+  "noDataAvailable": "No data available",
   "todayButton": "Today",
   "viewDay": "Day",
   "viewWeek": "Week",
@@ -55,7 +55,7 @@
   "untitledTask": "Untitled Task",
   "noCourse": "No Course",
   "common": {
-    "placeholder": "placeholder",
+    "placeholder": "(placeholder)",
     "notAvailable": "N/A",
     "cancel": "Cancel",
     "loadingCourseData": "Loading course data...",
@@ -152,5 +152,16 @@
   },
   "taskCard": {
     "toggleCompleteAria": "Mark task {{taskName}} as complete"
+  },
+  "gapsPanel": {
+    "title": "Past Incomplete Tasks",
+    "errorLoading": "Failed to load past incomplete tasks.",
+    "noGapsFound": "No incomplete tasks found in the selected period. Great job!",
+    "taskDescriptionMissing": "Task Description Missing",
+    "courseMissing": "Course Missing",
+    "daysAgo_one": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago",
+    "weeksAgo_one": "{{count}} week ago",
+    "weeksAgo_other": "{{count}} weeks ago"
   }
 } 

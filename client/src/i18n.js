@@ -16,11 +16,20 @@ i18n
   // Init i18next
   // for all options read: https://www.i18next.com/overview/configuration-options
   .init({
-    debug: import.meta.env.DEV, // Enable debug messages in development
+    // debug: import.meta.env.DEV, // Enable debug messages in development
+    debug: true, // Force debug logs
     fallbackLng: 'en',
     supportedLngs: ['en', 'he'], // Define supported languages
     interpolation: {
       escapeValue: false, // Not needed for react as it escapes by default
+    },
+    // ADDING Explicit Pluralization rule for Hebrew (simple: 1 vs other)
+    pluralResolver: (language, count) => {
+      if (language === 'he') {
+        return count === 1 ? 'one' : 'other';
+      }
+      // Default plural resolver for other languages (like English)
+      return count === 1 ? 'one' : 'other';
     },
     backend: {
       // Path where resources get loaded from, relative to the base path

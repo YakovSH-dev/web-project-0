@@ -21,11 +21,11 @@ function DailyViewContent({ tasks, onTaskCardClick, onToggleComplete }) {
     <div className="flex flex-wrap p-1">
       {tasks.map(task => (
         <div key={task._id} className="p-2">
-          <TaskCard
-            task={task}
+        <TaskCard
+          task={task}
             onCardClick={onTaskCardClick}
             onToggleComplete={onToggleComplete}
-          />
+        />
         </div>
       ))}
     </div>
