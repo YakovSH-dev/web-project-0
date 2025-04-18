@@ -8,9 +8,17 @@ const getAuthToken = () => localStorage.getItem('authToken');
 
 // Helper function to handle API responses and errors
 const handleResponse = async (response) => {
-  const data = await response.json(); // Attempt to parse JSON regardless of status
+  // Try to parse JSON regardless of status code, as backend might send error details
+  let data;
+  try {
+      data = await response.json();
+  } catch (error) {
+      // If parsing fails (e.g., empty body for 204), create a fallback object
+      data = { message: response.statusText };
+  }
+
   if (!response.ok) {
-    // Throw an error with the message from the backend if available
+    // Throw an error with the message from the backend if available, else use status text
     throw new Error(data.message || `HTTP error! status: ${response.status}`);
   }
   return data; // Return parsed JSON data on success
@@ -22,18 +30,12 @@ const handleResponse = async (response) => {
  */
 export const getSemesters = async () => {
   const token = getAuthToken();
-  if (!token) {
-    // Throw an error or return a specific status if no token is found
-    throw new Error('Authentication token not found.'); 
-  }
+  if (!token) throw new Error('Authentication token not found.'); 
 
   const response = await fetch(`${API_BASE_URL}/semesters`, {
     method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Authorization': `Bearer ${token}` },
   });
-
   return handleResponse(response);
 };
 
@@ -44,11 +46,8 @@ export const getSemesters = async () => {
  */
 export const addSemester = async (semesterData) => {
   const token = getAuthToken();
-  if (!token) {
-    throw new Error('Authentication token not found.');
-  }
+  if (!token) throw new Error('Authentication token not found.');
 
-   // Ensure numberOfWeeks is a number before sending
    const bodyData = {
        ...semesterData,
        numberOfWeeks: parseInt(semesterData.numberOfWeeks, 10) || 0 
@@ -62,8 +61,54 @@ export const addSemester = async (semesterData) => {
     },
     body: JSON.stringify(bodyData),
   });
+  return handleResponse(response);
+};
+
+/**
+ * Adds a new course to a specific semester for the logged-in user.
+ * @param {object} courseData - Object containing course details (name, color, etc.) AND semesterId.
+ * @returns {Promise<object>} A promise that resolves to the newly created course object.
+ */
+export const addCourse = async (courseData) => {
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication token not found.'); 
+
+  // The backend route is POST /api/courses
+  // It expects semesterId in the body according to our controller design
+  if (!courseData.semesterId) {
+      throw new Error('semesterId is required to add a course.');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/courses`, {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(courseData), // Send all course data including semesterId
+  });
 
   return handleResponse(response);
 };
 
-// Add other semester-related API call functions here later (e.g., updateSemester, deleteSemester)
+
+/** // --- Placeholder for getCourses service function ---
+ * Fetches courses for a specific semester.
+ * @param {string} semesterId - The ID of the semester.
+ * @returns {Promise<Array>} A promise that resolves to an array of course objects.
+ */
+export const getCourses = async (semesterId) => {
+    const token = getAuthToken();
+    if (!token) throw new Error('Authentication token not found.');
+    if (!semesterId) throw new Error('semesterId is required.');
+
+    const response = await fetch(`${API_BASE_URL}/courses?semesterId=${semesterId}`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` },
+    });
+    return handleResponse(response);
+};
+
+
+// Add other API call functions here later (e.g., updateSemester, deleteSemester, updateCourse, etc.)
+

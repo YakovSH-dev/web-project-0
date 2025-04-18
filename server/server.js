@@ -10,7 +10,13 @@ const mongoose = require('mongoose');
 // Import route handlers
 const authRoutes = require('./routes/auth.routes.js'); 
 const semesterRoutes = require('./routes/semester.routes.js'); 
-const courseRoutes = require('./routes/course.routes.js'); // *** ADDED THIS LINE ***
+const courseRoutes = require('./routes/course.routes.js');
+// Import NEW route handlers
+const assignmentRoutes = require('./routes/assignment.routes.js');
+const taskDefinitionRoutes = require('./routes/taskDefinition.routes.js');
+const taskInstanceRoutes = require('./routes/taskInstance.routes.js');
+const noteRoutes = require('./routes/note.routes.js');
+const viewRoutes = require('./routes/view.routes.js'); // Import view routes
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -60,7 +66,14 @@ function setupRoutes() {
   app.use('/api/semesters', semesterRoutes); 
   
   // Mount the course routes under '/api/courses'
-  app.use('/api/courses', courseRoutes); // *** ADDED THIS LINE ***
+  app.use('/api/courses', courseRoutes);
+  
+  // Mount the NEW routes
+  app.use('/api/assignments', assignmentRoutes);
+  app.use('/api/taskdefinitions', taskDefinitionRoutes);
+  app.use('/api/taskinstances', taskInstanceRoutes);
+  app.use('/api/notes', noteRoutes);
+  app.use('/api/views', viewRoutes); // Mount view routes
   
   console.log("Routes initialized.");
 }
@@ -76,7 +89,13 @@ connectDB_Mongoose().then(() => {
     console.log(`API status endpoint: GET /api/status`);
     console.log(`API auth endpoints mounted under: /api/auth`); 
     console.log(`API semester endpoints mounted under: /api/semesters`); 
-    console.log(`API course endpoints mounted under: /api/courses`); // *** ADDED THIS LINE ***
+    console.log(`API course endpoints mounted under: /api/courses`);
+    // Add logs for NEW routes
+    console.log(`API assignment endpoints mounted under: /api/assignments`);
+    console.log(`API task definition endpoints mounted under: /api/taskdefinitions`);
+    console.log(`API task instance endpoints mounted under: /api/taskinstances`);
+    console.log(`API note endpoints mounted under: /api/notes`);
+    console.log(`API view endpoints mounted under: /api/views`); // Log view routes
   });
 
 }).catch(error => {
