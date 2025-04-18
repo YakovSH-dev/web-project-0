@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { registerUser } from '../../services/auth';
+import { useAuth } from '../../context/AuthContext';
 
 function RegisterForm() {
   const { t } = useTranslation();
-  const [name, setName] = useState(''); // Optional name
+  const { register } = useAuth();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -25,22 +24,15 @@ function RegisterForm() {
         userData.name = name.trim();
       }
       
-      await registerUser(userData);
-      // If registration is successful, show success message
-      // Optionally, automatically log the user in and redirect, 
-      // but that requires the backend register endpoint to return a token.
-      // For now, show success and let them log in manually.
+      await register(userData);
       setSuccess(t('registrationSuccess'));
-      // Optionally clear the form
       setName('');
       setEmail('');
       setPassword('');
-      // Maybe redirect to login after a short delay?
       // setTimeout(() => navigate('/login'), 2000);
 
     } catch (err) {
-      console.error('Registration form error:', err);
-      // Extract specific validation errors if backend provides them
+      console.error('Registration form error caught in component:', err);
       if (err.errors) {
         const messages = Object.values(err.errors).map(e => e.message).join(', ');
         setError(t('registrationFailed', { message: messages }));

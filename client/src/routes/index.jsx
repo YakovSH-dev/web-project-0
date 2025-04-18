@@ -1,48 +1,65 @@
 import React from 'react';
 import {
   createBrowserRouter,
-  RouterProvider,
+  Outlet // Import Outlet for the root layout
 } from "react-router-dom";
+import { AuthProvider } from '../context/AuthContext'; // Import AuthProvider
 
 // Import Page Components
-import App from '../App.jsx'; // Main App layout (optional, can be root)
 import DashboardPage from '../pages/DashboardPage.jsx';
 import LoginPage from '../pages/LoginPage.jsx';
 import RegisterPage from '../pages/RegisterPage.jsx';
 import NotFoundPage from '../pages/NotFoundPage.jsx';
 
-// Import Route Protection Component
+// Import Layout & Protection Components
+import MainLayout from '../components/layout/MainLayout.jsx'; // Import the layout
 import ProtectedRoute from './ProtectedRoute.jsx';
+
+// Define a Root component that provides the Auth context
+const RootLayout = () => {
+  return (
+    <AuthProvider>
+      <Outlet /> {/* Child routes will render here, inheriting AuthContext */} 
+    </AuthProvider>
+  );
+};
 
 const router = createBrowserRouter([
   {
-    path: "/",
-    element: <ProtectedRoute />,
+    element: <RootLayout />, // Root layout provides Auth context to all descendants
     children: [
       {
-        path: "", // Default route within protected section
-        element: <DashboardPage />,
-        // loader: dashboardLoader, // Example: Add data loaders if needed
+        path: "/",
+        element: (
+          <ProtectedRoute>
+            <MainLayout /> 
+          </ProtectedRoute>
+        ),
+        children: [
+          {
+            path: "", 
+            element: <DashboardPage />,
+          },
+          // Other protected routes nested under MainLayout go here
+        ],
       },
-      // Add other protected routes here (e.g., settings, profile)
-    ],
-  },
-  {
-    path: "/login",
-    element: <LoginPage />,
-  },
-  {
-    path: "/register",
-    element: <RegisterPage />,
-  },
-  {
-    path: "*", // Catch-all for unmatched routes
-    element: <NotFoundPage />,
-  },
+      {
+        path: "/login",
+        element: <LoginPage />,
+      },
+      {
+        path: "/register",
+        element: <RegisterPage />,
+      },
+      {
+        path: "*", 
+        element: <NotFoundPage />,
+      },
+    ]
+  }
 ]);
 
-const AppRouter = () => {
-  return <RouterProvider router={router} />;
-};
+// Remove the AppRouter component, just export the router instance
+// const AppRouter = () => { ... };
 
-export default AppRouter; 
+export default router; // Export the router instance directly 

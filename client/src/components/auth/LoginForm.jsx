@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { loginUser } from '../../services/auth';
+import { useAuth } from '../../context/AuthContext';
 
 function LoginForm() {
   const { t } = useTranslation();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -17,16 +16,9 @@ function LoginForm() {
     setError(null);
 
     try {
-      const data = await loginUser({ email, password });
-      if (data.token) {
-        localStorage.setItem('authToken', data.token);
-        console.log('Login successful, navigating to dashboard...');
-        navigate('/');
-      } else {
-        setError(t('loginFailed'));
-      }
+      await login({ email, password });
     } catch (err) {
-      console.error('Login form error:', err);
+      console.error('Login form error caught in component:', err);
       setError(err.message || t('loginError'));
     } finally {
       setIsLoading(false);
