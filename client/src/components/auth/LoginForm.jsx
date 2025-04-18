@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { loginUser } from '../../services/auth';
 
 function LoginForm() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
@@ -16,19 +18,16 @@ function LoginForm() {
 
     try {
       const data = await loginUser({ email, password });
-      // Assuming the backend returns a token
       if (data.token) {
         localStorage.setItem('authToken', data.token);
-        // Optionally store user info if returned: localStorage.setItem('userInfo', JSON.stringify(data.user));
         console.log('Login successful, navigating to dashboard...');
-        navigate('/'); // Navigate to dashboard on successful login
+        navigate('/');
       } else {
-        setError('Login failed: No token received.');
+        setError(t('loginFailed'));
       }
     } catch (err) {
       console.error('Login form error:', err);
-      // Use the error message from the backend if available
-      setError(err.message || 'An error occurred during login.');
+      setError(err.message || t('loginError'));
     } finally {
       setIsLoading(false);
     }
@@ -46,7 +45,7 @@ function LoginForm() {
           htmlFor="login-email" 
           className="block text-sm font-medium text-gray-700 mb-1"
         >
-          Email Address
+          {t('emailLabel')}
         </label>
         <input
           type="email"
@@ -63,7 +62,7 @@ function LoginForm() {
           htmlFor="login-password" 
           className="block text-sm font-medium text-gray-700 mb-1"
         >
-          Password
+          {t('passwordLabel')}
         </label>
         <input
           type="password"
@@ -81,7 +80,7 @@ function LoginForm() {
           disabled={isLoading}
           className={`w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          {isLoading ? 'Logging in...' : 'Login'}
+          {isLoading ? t('loggingInButton') : t('loginButton')}
         </button>
       </div>
     </form>

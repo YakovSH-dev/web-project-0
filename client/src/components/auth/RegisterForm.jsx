@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { registerUser } from '../../services/auth';
 
 function RegisterForm() {
+  const { t } = useTranslation();
   const [name, setName] = useState(''); // Optional name
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,7 +30,7 @@ function RegisterForm() {
       // Optionally, automatically log the user in and redirect, 
       // but that requires the backend register endpoint to return a token.
       // For now, show success and let them log in manually.
-      setSuccess('Registration successful! You can now log in.');
+      setSuccess(t('registrationSuccess'));
       // Optionally clear the form
       setName('');
       setEmail('');
@@ -41,9 +43,9 @@ function RegisterForm() {
       // Extract specific validation errors if backend provides them
       if (err.errors) {
         const messages = Object.values(err.errors).map(e => e.message).join(', ');
-        setError(`Registration failed: ${messages}`);
+        setError(t('registrationFailed', { message: messages }));
       } else {
-        setError(err.message || 'An error occurred during registration.');
+        setError(err.message || t('registrationError'));
       }
     } finally {
       setIsLoading(false);
@@ -67,7 +69,7 @@ function RegisterForm() {
           htmlFor="register-name" 
           className="block text-sm font-medium text-gray-700 mb-1"
         >
-          Name (Optional)
+          {t('nameLabel')}
         </label>
         <input
           type="text"
@@ -83,7 +85,7 @@ function RegisterForm() {
           htmlFor="register-email" 
           className="block text-sm font-medium text-gray-700 mb-1"
         >
-          Email Address
+          {t('emailLabel')}
         </label>
         <input
           type="email"
@@ -100,7 +102,7 @@ function RegisterForm() {
           htmlFor="register-password" 
           className="block text-sm font-medium text-gray-700 mb-1"
         >
-          Password
+          {t('passwordLabel')}
         </label>
         <input
           type="password"
@@ -119,7 +121,7 @@ function RegisterForm() {
           disabled={isLoading}
           className={`w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          {isLoading ? 'Registering...' : 'Register'}
+          {isLoading ? t('registeringButton') : t('registerButton')}
         </button>
       </div>
     </form>
